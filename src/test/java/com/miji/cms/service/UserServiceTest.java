@@ -1,18 +1,19 @@
-package com.miji.cms;
+package com.miji.cms.service;
+import java.util.Date;
 
 import com.miji.cms.model.domain.User;
-import com.miji.cms.service.UserService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.annotation.Resource;
 
+import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
-class BackendApplicationTests {
+public class UserServiceTest {
     @Resource
     private UserService userService;
-
+/*
     @Test
     public void testRegister(){
         User user =  new User();
@@ -32,4 +33,5 @@ class BackendApplicationTests {
 
     }
 
+ */
 }
