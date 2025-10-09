@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.miji.cms.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.miji.cms.model.domain.User">
+            <id property="id" column="id" />
+            <result property="userName" column="userName" />
+            <result property="userAccount" column="userAccount" />
+            <result property="userPassword" column="userPassword" />
+            <result property="userUrl" column="userUrl" />
+            <result property="gender" column="gender" />
+            <result property="phone" column="phone" />
+            <result property="email" column="email" />
+            <result property="tags" column="tags" />
+            <result property="userRole" column="userRole" />
+            <result property="createTime" column="createTime" />
+            <result property="updateTime" column="updateTime" />
+            <result property="isDelete" column="isDelete" />
+            <result property="profile" column="profile" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,userName,userAccount,userPassword,userUrl,gender,
+        phone,email,tags,userRole,createTime,
+        updateTime,isDelete,profile
+    </sql>
+</mapper>
