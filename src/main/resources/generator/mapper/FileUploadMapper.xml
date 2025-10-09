@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.miji.cms.mapper.FileUploadMapper">
+
+    <resultMap id="BaseResultMap" type="com.miji.cms.model.domain.FileUpload">
+            <id property="id" column="id" />
+            <result property="compId" column="compId" />
+            <result property="userId" column="userId" />
+            <result property="teamId" column="teamId" />
+            <result property="filePath" column="filePath" />
+            <result property="fileType" column="fileType" />
+            <result property="createTime" column="createTime" />
+            <result property="updateTime" column="updateTime" />
+            <result property="isDelete" column="isDelete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,compId,userId,teamId,filePath,fileType,
+        createTime,updateTime,isDelete
+    </sql>
+</mapper>

@@ -1,6 +1,6 @@
 -- 数据库名：cms
 -- 模块：学科竞赛管理系统
--- 作者：cms
+-- 作者：miji
 -- 日期：2025-10-09
 
 CREATE DATABASE IF NOT EXISTS cms
