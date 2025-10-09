@@ -5,8 +5,8 @@
     <groupId>com.miji</groupId>
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>demo</name>
-    <description>demo</description>
+    <name>cms</name>
+    <description>cms-backend</description>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -64,7 +64,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.example.demo.BackendApplication</mainClass>
+                    <mainClass>com.example.cms.BackendApplication</mainClass>
                     <skip>true</skip>
                 </configuration>
                 <executions>
