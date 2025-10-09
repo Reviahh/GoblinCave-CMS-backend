@@ -1,0 +1,49 @@
+# =====================================
+# 项目信息配置
+# =====================================
+spring:
+  application:
+    name: cms-competition
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  # =====================================
+  # 数据源配置（MySQL）
+  # =====================================
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/cms
+    username: root
+    password: 12345678
+
+  # =====================================
+  # 时间格式与时区
+  # =====================================
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+  # =====================================
+  # 文件上传
+  # =====================================
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+# =====================================
+# MyBatis-Plus 配置
+# =====================================
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.cms.competition.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# =====================================
+# 服务器配置
+# =====================================
+server:
+  port: 8080
+
