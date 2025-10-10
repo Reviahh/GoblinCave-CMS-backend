@@ -4,8 +4,6 @@ import com.miji.cms.common.BaseResponse;
 import com.miji.cms.common.ErrorCode;
 import com.miji.cms.common.ResultUtils;
 import com.miji.cms.exception.BusinessException;
-import com.miji.cms.model.domain.User;
-import com.miji.cms.model.request.UserLoginRequest;
 import com.miji.cms.model.request.UserRegisterRequest;
 import com.miji.cms.service.UserService;
 import org.apache.commons.lang3.StringUtils;
@@ -13,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * 用户接口
@@ -45,18 +42,4 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
-    @PostMapping("/login")
-    public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request){
-        if(userLoginRequest == null){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        String userAccount = userLoginRequest.getUserAccount();
-        String userPassword = userLoginRequest.getUserPassword();
-        if(StringUtils.isAnyBlank(userAccount,userPassword)){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User user = userService.userLogin(userAccount, userPassword, request);
-        return ResultUtils.success(user);
-
-    }
 }
