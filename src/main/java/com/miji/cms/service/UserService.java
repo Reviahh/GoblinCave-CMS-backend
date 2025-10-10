@@ -3,6 +3,8 @@ package com.miji.cms.service;
 import com.miji.cms.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
 * @author miji
 * @description 针对表【user(用户表)】的数据库操作Service
@@ -19,4 +21,21 @@ public interface UserService extends IService<User> {
      */
     long userRegister(String userAccount,String userPassword,String checkPassword);
 
+
+    /**
+     *用户登录
+     *
+     * @param userAccount 用户账户名
+     * @param userPassword 用户密码
+     * @return 脱敏后的用户信息
+     */
+    User userLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+    /**
+     * 用户脱敏
+     *
+     * @param originUser
+     * @return
+     */
+    User getSafetyUser(User originUser);
 }
