@@ -1,5 +1,6 @@
 package com.miji.cms.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.miji.cms.common.BaseResponse;
 import com.miji.cms.common.ErrorCode;
 import com.miji.cms.common.ResultUtils;
@@ -14,6 +15,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.miji.cms.constant.userConstant.USER_LOGIN_STATE;
 
 /**
  * 用户接口
@@ -61,4 +66,64 @@ public class UserController {
         return ResultUtils.success(user);
 
     }
+
+    @PostMapping("/logout")
+    public BaseResponse<Integer> userLogout( HttpServletRequest request){
+        if(request == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        int result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+    @GetMapping("/current")
+    public BaseResponse<User> getCurrentUser(HttpServletRequest request){
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        if(currentUser == null){
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        long userId = currentUser.getId();
+        User user = userService.getById(userId);
+        User safetyUser = userService.getSafetyUser(user);
+        return ResultUtils.success(safetyUser);
+    }
+
+    @GetMapping("/search")
+    public BaseResponse<List<User>> userSearch(String userName, HttpServletRequest request){
+        if(!userService.isAdmin(request)){
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        if(StringUtils.isNotBlank(userName)){
+            queryWrapper.like("userName",userName);
+        }
+        List<User> userList = userService.list(queryWrapper);
+        List<User> list = userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        return ResultUtils.success(list);
+    }
+
+    @PostMapping("/update")
+    public BaseResponse<Integer> userUpdate(@RequestBody User user,HttpServletRequest request){
+        if(user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        int result = userService.updateUser(user,loginUser);
+        return ResultUtils.success(result);
+    }
+
+    @PostMapping("/delete")
+    public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request){
+        if(!userService.isAdmin(request)){
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        if(id <= 0){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean result = userService.removeById(id);
+        return ResultUtils.success(result);
+    }
+
 }
