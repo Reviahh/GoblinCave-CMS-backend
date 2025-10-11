@@ -37,7 +37,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
 
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, Integer userRole) {
         //1，校验
         if (StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"参数为空");
@@ -70,6 +70,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
+        user.setUserRole(userRole);
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -78,7 +79,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public User userLogin(String userAccount, String userPassword,Integer userRole, HttpServletRequest request) {
         //1，校验
         if (StringUtils.isAnyBlank(userAccount,userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -101,6 +102,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount",userAccount);
         queryWrapper.eq("userPassword",encryptPassword);
+        queryWrapper.eq("userRole",userRole);
         User user = userMapper.selectOne(queryWrapper);
         //用户不存在或账户密码错误
         if (user == null) {
