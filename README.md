@@ -68,7 +68,7 @@
 
 - [x]  全局异常处理（`GlobalExceptionHandler`）
 - [x]  统一返回类（`BaseResponse`、`ResultUtils`）
-- [ ]  JWT 登录鉴权（`TokenInterceptor`）
+- [x]  Session 登录机制
 - [x]  Swagger 接口文档（`/swagger-ui.html`）
 - [ ]  CORS 跨域配置（前后端联调）
 - [ ]  日志记录与操作审计（可选）
