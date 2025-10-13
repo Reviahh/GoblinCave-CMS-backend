@@ -28,7 +28,6 @@ CREATE TABLE cms.user
     createTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
     updateTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     isDelete      TINYINT  DEFAULT 0                 NOT NULL COMMENT '是否删除',
-    profile       VARCHAR(512)                       NULL COMMENT '个人简介'
 )
     COMMENT '用户表';
 
