@@ -17,8 +17,9 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.miji.cms.constant.userConstant.ADMIN_ROLE;
-import static com.miji.cms.constant.userConstant.USER_LOGIN_STATE;
+import static com.miji.cms.constant.UserConstant.ADMIN_ROLE;
+import static com.miji.cms.constant.UserConstant.USER_LOGIN_STATE;
+
 
 /**
 * @author miji

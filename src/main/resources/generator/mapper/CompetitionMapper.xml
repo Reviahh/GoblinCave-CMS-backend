@@ -6,23 +6,20 @@
 
     <resultMap id="BaseResultMap" type="com.miji.cms.model.domain.Competition">
             <id property="id" column="id" />
-            <result property="compName" column="compName" />
-            <result property="category" column="category" />
+            <result property="name" column="name" />
+            <result property="summary" column="summary" />
+            <result property="content" column="content" />
+            <result property="coverurl" column="coverUrl" />
             <result property="organizer" column="organizer" />
-            <result property="description" column="description" />
-            <result property="startTime" column="startTime" />
-            <result property="endTime" column="endTime" />
-            <result property="isTeam" column="isTeam" />
-            <result property="maxTeamSize" column="maxTeamSize" />
-            <result property="createUserId" column="createUserId" />
-            <result property="createTime" column="createTime" />
-            <result property="updateTime" column="updateTime" />
-            <result property="isDelete" column="isDelete" />
+            <result property="starttime" column="startTime" />
+            <result property="endtime" column="endTime" />
+            <result property="createtime" column="createTime" />
+            <result property="updatetime" column="updateTime" />
+            <result property="isdelete" column="isDelete" />
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,compName,category,organizer,description,startTime,
-        endTime,isTeam,maxTeamSize,createUserId,createTime,
-        updateTime,isDelete
+        id,name,summary,content,coverUrl,organizer,
+        startTime,endTime,createTime,updateTime,isDelete
     </sql>
 </mapper>

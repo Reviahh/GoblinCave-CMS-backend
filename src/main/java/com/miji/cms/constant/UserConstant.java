@@ -5,7 +5,7 @@ package com.miji.cms.constant;
  *
  * @author miji
  */
-public interface userConstant {
+public interface UserConstant {
     /**
      * 用户登录态键
      */

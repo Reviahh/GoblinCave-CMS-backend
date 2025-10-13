@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.miji.cms.constant.userConstant.USER_LOGIN_STATE;
+import static com.miji.cms.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户接口

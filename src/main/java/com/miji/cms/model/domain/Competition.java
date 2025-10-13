@@ -1,21 +1,25 @@
 package com.miji.cms.model.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.util.Date;
 import lombok.Data;
 
+import java.io.Serializable;
+import java.util.Date;
+
+
 /**
- * 竞赛表
+ * 竞赛信息表
  * @TableName competition
  */
 @TableName(value ="competition")
 @Data
-public class Competition {
+public class Competition implements Serializable {
+    private static final long serialVersionUID = -7848818871002747423L;
+
     /**
-     * id
+     * 竞赛ID
      */
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -23,22 +27,27 @@ public class Competition {
     /**
      * 竞赛名称
      */
-    private String compName;
+    private String name;
 
     /**
-     * 学科类别
+     * 竞赛简要介绍
      */
-    private String category;
+    private String summary;
+
+    /**
+     * 竞赛详情（富文本HTML内容）
+     */
+    private String content;
+
+    /**
+     * 封面图片URL
+     */
+    private String coverUrl;
 
     /**
      * 主办方
      */
     private String organizer;
-
-    /**
-     * 竞赛简介
-     */
-    private String description;
 
     /**
      * 开始时间
@@ -49,21 +58,6 @@ public class Competition {
      * 结束时间
      */
     private Date endTime;
-
-    /**
-     * 是否团队赛 0-否 1-是
-     */
-    private Integer isTeam;
-
-    /**
-     * 最大队伍人数
-     */
-    private Integer maxTeamSize;
-
-    /**
-     * 创建者id（教师或管理员）
-     */
-    private Long createUserId;
 
     /**
      * 创建时间
@@ -79,4 +73,5 @@ public class Competition {
      * 是否删除
      */
     private Integer isDelete;
+
 }
