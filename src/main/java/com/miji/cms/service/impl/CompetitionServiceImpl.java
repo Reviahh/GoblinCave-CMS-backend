@@ -1,5 +1,6 @@
 package com.miji.cms.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.miji.cms.common.ErrorCode;
 import com.miji.cms.constant.UserConstant;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -119,6 +121,18 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
 
         return true;
     }
+
+    @Override
+    public List<Competition> listCompetitions(String name) {
+        QueryWrapper<Competition> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("isDelete", 0);
+        if (StringUtils.isNotBlank(name)) {
+            queryWrapper.like("name", name);
+        }
+        queryWrapper.orderByDesc("createTime");
+        return this.list(queryWrapper);
+    }
+
 }
 
 

@@ -67,6 +67,10 @@ public class CompetitionController {
 
     /**
      * 删除竞赛
+     *
+     * @param id
+     * @param request
+     * @return
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteCompetition(@RequestBody Long id, HttpServletRequest request) {
@@ -77,4 +81,16 @@ public class CompetitionController {
         boolean result = competitionService.deleteCompetition(id, request);
         return ResultUtils.success(result);
     }
+
+    /**
+     * 查询竞赛列表
+     *
+     * @param name
+     * @return
+     */
+    @GetMapping("/list")
+    public BaseResponse<List<Competition>> listCompetitions(@RequestParam(required = false) String name) {
+        return ResultUtils.success(competitionService.listCompetitions(name));
+    }
+
 }

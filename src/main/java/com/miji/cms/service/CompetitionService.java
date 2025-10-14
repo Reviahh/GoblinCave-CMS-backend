@@ -29,10 +29,19 @@ public interface CompetitionService extends IService<Competition> {
 
 
     /**
-     * 删除竞赛（逻辑删除）
+     * 删除竞赛
      * @param id 竞赛ID
      * @param request Http请求
      * @return 是否成功
      */
     boolean deleteCompetition(Long id, HttpServletRequest request);
+
+    /**
+     * 查询竞赛
+     *
+     * @param name
+     * @return
+     */
+    List<Competition> listCompetitions(String name);
+
 }
