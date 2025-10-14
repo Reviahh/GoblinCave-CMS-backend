@@ -14,6 +14,7 @@ public class CompetitionUpdateRequest implements Serializable {
     private String content;      // 富文本内容
     private String coverUrl;     // 封面图片地址
     private String organizer;    // 主办方
+    private Integer maxMembers;
     private Date startTime;    // 格式 "yyyy-MM-dd'T'HH:mm:ss"
     private Date endTime;      // 格式 "yyyy-MM-dd'T'HH:mm:ss"
 }

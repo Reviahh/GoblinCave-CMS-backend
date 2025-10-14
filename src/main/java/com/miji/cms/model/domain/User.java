@@ -59,7 +59,7 @@ public class User implements Serializable {
     private String email;
 
     /**
-     * 标签列表
+     * 个人简介
      */
     private String tags;
 
@@ -74,7 +74,7 @@ public class User implements Serializable {
     private Date createTime;
 
     /**
-     * 
+     * 更新时间
      */
     private Date updateTime;
 

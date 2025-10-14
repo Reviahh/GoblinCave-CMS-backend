@@ -68,7 +68,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在");
         }
 
-        // 3. 校验权限：创建者或管理员/教师
+        // 3. 校验权限：创建者
         if (!competition.getCreatorId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH, "无权限修改该竞赛");
         }
@@ -77,6 +77,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         if (StringUtils.isNotBlank(request.getName())) competition.setName(request.getName());
         if (StringUtils.isNotBlank(request.getSummary())) competition.setSummary(request.getSummary());
         if (StringUtils.isNotBlank(request.getContent())) competition.setContent(request.getContent());
+        if (request.getMaxMembers()!=null) competition.setMaxMembers(request.getMaxMembers());
         if (StringUtils.isNotBlank(request.getCoverUrl())) competition.setCoverUrl(request.getCoverUrl());
         if (StringUtils.isNotBlank(request.getOrganizer())) competition.setOrganizer(request.getOrganizer());
 
@@ -90,7 +91,35 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         // 7. 保存数据库
         return this.updateById(competition);
     }
+
+    @Override
+    public boolean deleteCompetition(Long id, HttpServletRequest request) {
+        // 1. 获取登录用户
+        User loginUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+
+        // 2. 查找竞赛
+        Competition competition = this.getById(id);
+        if (competition == null || competition.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛不存在或已删除");
+        }
+
+        // 3. 权限判断
+        if (!loginUser.getId().equals(competition.getCreatorId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "无权限删除该竞赛");
+        }
+
+        // 4. 执行逻辑删除
+        boolean update = this.removeById(id);
+        if (!update) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
+        }
+
+        return true;
     }
+}
 
 
 

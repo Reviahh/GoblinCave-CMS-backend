@@ -23,11 +23,11 @@ CREATE TABLE cms.user
     gender        TINYINT                            NULL COMMENT '性别 0-女 1-男',
     phone         VARCHAR(256)                       NULL COMMENT '电话',
     email         VARCHAR(512)                       NULL COMMENT '邮箱',
-    tags          VARCHAR(1024)                      NULL COMMENT '标签列表',
+    tags          VARCHAR(1024)                      NULL COMMENT '个人简介',
     userRole      TINYINT  DEFAULT 0                 NULL COMMENT '用户角色 0-普通用户，1-管理员',
     createTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
     updateTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    isDelete      TINYINT  DEFAULT 0                 NOT NULL COMMENT '是否删除',
+    isDelete      TINYINT  DEFAULT 0                 NOT NULL COMMENT '是否删除'
 )
     COMMENT '用户表';
 
@@ -45,6 +45,7 @@ CREATE TABLE cms.competition
     coverUrl      VARCHAR(512)                       NULL COMMENT '封面图片URL',
     organizer     VARCHAR(255)                       NULL COMMENT '主办方',
     creatorId     BIGINT                             NOT NULL COMMENT '创建者ID',
+    maxMembers    INT                                NOT NULL COMMENT '最大人数',
     startTime     DATETIME                           NULL COMMENT '开始时间',
     endTime       DATETIME                           NULL COMMENT '结束时间',
     createTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',

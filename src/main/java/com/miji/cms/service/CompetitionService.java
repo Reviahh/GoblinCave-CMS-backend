@@ -28,4 +28,11 @@ public interface CompetitionService extends IService<Competition> {
     boolean updateCompetition(CompetitionUpdateRequest request, HttpServletRequest httpRequest);
 
 
+    /**
+     * 删除竞赛（逻辑删除）
+     * @param id 竞赛ID
+     * @param request Http请求
+     * @return 是否成功
+     */
+    boolean deleteCompetition(Long id, HttpServletRequest request);
 }

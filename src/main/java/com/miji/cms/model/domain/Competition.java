@@ -55,6 +55,11 @@ public class Competition implements Serializable {
     private Long creatorId;
 
     /**
+     * 最大人数
+     */
+    private Integer maxMembers;
+
+    /**
      * 开始时间
      */
     private Date startTime;

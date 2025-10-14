@@ -65,4 +65,16 @@ public class CompetitionController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 删除竞赛
+     */
+    @PostMapping("/delete")
+    public BaseResponse<Boolean> deleteCompetition(@RequestBody Long id, HttpServletRequest request) {
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的竞赛ID");
+        }
+
+        boolean result = competitionService.deleteCompetition(id, request);
+        return ResultUtils.success(result);
+    }
 }

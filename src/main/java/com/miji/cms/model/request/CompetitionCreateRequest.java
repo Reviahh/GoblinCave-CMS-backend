@@ -24,6 +24,8 @@ public class CompetitionCreateRequest implements Serializable {
 
     private String organizer;   // 主办方
 
+    private Integer maxMembers;
+
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
     private Date startTime; // 开始时间
 

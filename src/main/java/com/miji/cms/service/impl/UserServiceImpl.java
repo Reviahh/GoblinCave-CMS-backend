@@ -195,7 +195,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return (User) userObj;
     }
 
-
     @Override
     public int updateUser(User user, User loginUser) {
         long userId = user.getId();
