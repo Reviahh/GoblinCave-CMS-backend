@@ -34,7 +34,12 @@ public class UserController {
     @Resource
     private UserService userService;
 
-
+    /**
+     * 用户注册
+     *
+     * @param userRegisterRequest
+     * @return
+     */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
         if(userRegisterRequest == null){
@@ -51,6 +56,13 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 用户登录
+     *
+     * @param userLoginRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/login")
     public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request){
         if(userLoginRequest == null){
@@ -67,6 +79,12 @@ public class UserController {
 
     }
 
+    /**
+     * 用户登出
+     *
+     * @param request
+     * @return
+     */
     @PostMapping("/logout")
     public BaseResponse<Integer> userLogout( HttpServletRequest request){
         if(request == null){
@@ -77,6 +95,12 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 查询当前用户
+     *
+     * @param request
+     * @return
+     */
     @GetMapping("/current")
     public BaseResponse<User> getCurrentUser(HttpServletRequest request){
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
@@ -90,6 +114,13 @@ public class UserController {
         return ResultUtils.success(safetyUser);
     }
 
+    /**
+     * 查询用户列表
+     *
+     * @param userName
+     * @param request
+     * @return
+     */
     @GetMapping("/search")
     public BaseResponse<List<User>> userSearch(String userName, HttpServletRequest request){
         if(!userService.isAdmin(request)){
@@ -104,6 +135,13 @@ public class UserController {
         return ResultUtils.success(list);
     }
 
+    /**
+     * 更新用户信息
+     *
+     * @param user
+     * @param request
+     * @return
+     */
     @PostMapping("/update")
     public BaseResponse<Integer> userUpdate(@RequestBody User user,HttpServletRequest request){
         if(user == null){
@@ -114,6 +152,13 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 删除用户
+     *
+     * @param id
+     * @param request
+     * @return
+     */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request){
         if(!userService.isAdmin(request)){

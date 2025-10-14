@@ -50,6 +50,11 @@ public class Competition implements Serializable {
     private String organizer;
 
     /**
+     * 创建者ID
+     */
+    private Long creatorId;
+
+    /**
      * 开始时间
      */
     private Date startTime;
@@ -65,7 +70,7 @@ public class Competition implements Serializable {
     private Date createTime;
 
     /**
-     * 
+     * 更新时间
      */
     private Date updateTime;
 

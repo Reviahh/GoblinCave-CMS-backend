@@ -13,9 +13,9 @@ public enum ErrorCode {
     NOT_LOGIN(40100,"未登录",""),
     NO_AUTH(40101,"无权限",""),
     FORBIDDEN(40301,"禁止操作",""),
-    SYSTEM_ERROR(50000,"系统内部异常",""),
+    SYSTEM_ERROR(50000,"系统内部异常","");
 
-    ;
+
 
     private final int code;
 

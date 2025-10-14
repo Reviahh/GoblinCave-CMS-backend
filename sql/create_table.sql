@@ -45,6 +45,7 @@ CREATE TABLE cms.competition
     content       LONGTEXT                           NULL COMMENT '竞赛详情（富文本HTML内容）',
     coverUrl      VARCHAR(512)                       NULL COMMENT '封面图片URL',
     organizer     VARCHAR(255)                       NULL COMMENT '主办方',
+    creatorId     BIGINT                             NOT NULL COMMENT '创建者ID',
     startTime     DATETIME                           NULL COMMENT '开始时间',
     endTime       DATETIME                           NULL COMMENT '结束时间',
     createTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
