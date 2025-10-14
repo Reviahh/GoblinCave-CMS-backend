@@ -82,9 +82,4 @@ public class User implements Serializable {
      * 是否删除
      */
     private Integer isDelete;
-
-    /**
-     * 个人简介
-     */
-    private String profile;
 }
