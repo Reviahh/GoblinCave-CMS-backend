@@ -93,4 +93,18 @@ public class CompetitionController {
         return ResultUtils.success(competitionService.listCompetitions(name));
     }
 
+    /**
+     * 获取竞赛详情
+     *
+     * @param id
+     * @return
+     */
+    @GetMapping("/detail")
+    public BaseResponse<Competition> getCompetitionDetail(@RequestBody Long id) {
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛ID不合法");
+        }
+        Competition competition = competitionService.getCompetitionById(id);
+        return ResultUtils.success(competition);
+    }
 }

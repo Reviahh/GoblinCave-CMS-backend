@@ -60,19 +60,16 @@ CREATE TABLE cms.competition
 -- ----------------------------
 CREATE TABLE cms.team
 (
-    id           BIGINT AUTO_INCREMENT COMMENT '队伍ID'
-        PRIMARY KEY,
-    competitionId BIGINT                             NOT NULL COMMENT '所属竞赛ID',
-    name         VARCHAR(256)                       NOT NULL COMMENT '队伍名称',
-    description  VARCHAR(1024)                      NULL COMMENT '队伍简介',
-    maxNum       INT      DEFAULT 5                 NOT NULL COMMENT '最大人数',
-    expireTime   DATETIME                           NULL COMMENT '过期时间',
-    userId       BIGINT                             NOT NULL COMMENT '队长ID（用户ID）',
-    status       INT      DEFAULT 0                 NOT NULL COMMENT '队伍状态：0-公开，1-私有，2-加密',
-    password     VARCHAR(512)                       NULL COMMENT '队伍密码（加密）',
-    createTime   DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
-    updateTime   DATETIME DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    isDelete     TINYINT  DEFAULT 0                 NOT NULL COMMENT '是否删除',
+    id            BIGINT AUTO_INCREMENT COMMENT '队伍ID' PRIMARY KEY,
+    competitionId BIGINT NOT NULL COMMENT '所属竞赛ID',
+    name          VARCHAR(256) NOT NULL COMMENT '队伍名称',
+    description   VARCHAR(1024) NULL COMMENT '队伍简介',
+    maxNum        INT NOT NULL COMMENT '队伍最大人数',
+    expireTime    DATETIME NULL COMMENT '过期时间',
+    userId        BIGINT NOT NULL COMMENT '队长ID（用户ID）',
+    createTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
+    updateTime    DATETIME DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    isDelete      TINYINT DEFAULT 0 NOT NULL COMMENT '是否删除',
     CONSTRAINT fk_team_competition FOREIGN KEY (competitionId) REFERENCES cms.competition (id),
     CONSTRAINT fk_team_leader FOREIGN KEY (userId) REFERENCES cms.user (id)
 )

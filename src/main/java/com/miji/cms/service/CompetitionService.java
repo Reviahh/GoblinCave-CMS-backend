@@ -44,4 +44,11 @@ public interface CompetitionService extends IService<Competition> {
      */
     List<Competition> listCompetitions(String name);
 
+    /**
+     * 根据ID获取竞赛详情
+     *
+     * @param id 竞赛ID
+     * @return 竞赛实体
+     */
+    Competition getCompetitionById(Long id);
 }

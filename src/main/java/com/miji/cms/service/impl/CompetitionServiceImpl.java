@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
@@ -28,6 +29,9 @@ import java.util.List;
 @Service
 public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Competition>
     implements CompetitionService{
+
+    @Resource
+    private CompetitionMapper competitionMapper;
 
     @Override
     public long addCompetition(CompetitionCreateRequest request, HttpServletRequest httpRequest) {
@@ -133,6 +137,14 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         return this.list(queryWrapper);
     }
 
+    @Override
+    public Competition getCompetitionById(Long id) {
+        Competition competition = competitionMapper.selectById(id);
+        if (competition == null || competition.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在或已删除");
+        }
+        return competition;
+    }
 }
 
 
