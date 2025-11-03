@@ -5,12 +5,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.miji.cms.common.ErrorCode;
 import com.miji.cms.constant.UserConstant;
 import com.miji.cms.exception.BusinessException;
+import com.miji.cms.mapper.CompetitionRegistrationMapper;
+import com.miji.cms.mapper.TeamMapper;
 import com.miji.cms.model.domain.Competition;
+import com.miji.cms.model.domain.CompetitionRegistration;
+import com.miji.cms.model.domain.Team;
 import com.miji.cms.model.domain.User;
 import com.miji.cms.model.request.CompetitionCreateRequest;
+import com.miji.cms.model.request.CompetitionRegisterRequest;
+import com.miji.cms.model.request.CompetitionReviewRequest;
 import com.miji.cms.model.request.CompetitionUpdateRequest;
 import com.miji.cms.service.CompetitionService;
 import com.miji.cms.mapper.CompetitionMapper;
+import com.miji.cms.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -32,6 +39,15 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
 
     @Resource
     private CompetitionMapper competitionMapper;
+
+    @Resource
+    private CompetitionRegistrationMapper competitionRegistrationMapper;
+
+    @Resource
+    private TeamMapper teamMapper;
+
+    @Resource
+    private UserService userService;
 
     @Override
     public long addCompetition(CompetitionCreateRequest request, HttpServletRequest httpRequest) {
@@ -145,6 +161,133 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         }
         return competition;
     }
+
+
+    @Override
+    public boolean registerCompetition(CompetitionRegisterRequest request, HttpServletRequest httpRequest) {
+        User loginUser = (User) httpRequest.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+
+        Long competitionId = request.getCompetitionId();
+        Long teamId = request.getTeamId();
+
+        // 校验竞赛是否存在
+        Competition competition = this.getById(competitionId);
+        if (competition == null || competition.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛不存在");
+        }
+
+        // 判断是否为团队赛
+        boolean isTeamCompetition = competition.getMaxMembers() > 1;
+
+        if (isTeamCompetition) {
+            // 团队赛必须有队伍ID
+            if (teamId == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "团队赛必须提供队伍ID");
+            }
+
+            // 校验队伍是否存在
+            Team team = teamMapper.selectById(teamId);
+            if (team == null || team.getIsDelete() == 1) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
+            }
+
+            // 校验当前用户是否是队长
+            if (!team.getUserId().equals(loginUser.getId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH, "只有队长可以代表队伍报名");
+            }
+
+            // 检查该队伍是否已报名此竞赛
+            QueryWrapper<CompetitionRegistration> query = new QueryWrapper<>();
+            query.eq("competitionId", competitionId)
+                    .eq("teamId", teamId)
+                    .eq("isDelete", 0);
+            if (competitionRegistrationMapper.selectCount(query) > 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "该队伍已报名此竞赛");
+            }
+
+            // 插入报名记录
+            CompetitionRegistration registration = new CompetitionRegistration();
+            registration.setCompetitionId(competitionId);
+            registration.setTeamId(teamId);
+            registration.setUserId(loginUser.getId()); // 队长ID
+            registration.setStatus(0); // 0-待审核
+            registration.setIsDelete(0);
+            registration.setCreateTime(new Date());
+            registration.setUpdateTime(new Date());
+
+            return competitionRegistrationMapper.insert(registration) > 0;
+
+        } else {
+            // 个人赛逻辑
+            QueryWrapper<CompetitionRegistration> query = new QueryWrapper<>();
+            query.eq("competitionId", competitionId)
+                    .eq("userId", loginUser.getId())
+                    .eq("isDelete", 0);
+            if (competitionRegistrationMapper.selectCount(query) > 0) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "已报名该竞赛");
+            }
+
+            CompetitionRegistration registration = new CompetitionRegistration();
+            registration.setCompetitionId(competitionId);
+            registration.setUserId(loginUser.getId());
+            registration.setStatus(0); // 待审核
+            registration.setIsDelete(0);
+            registration.setCreateTime(new Date());
+            registration.setUpdateTime(new Date());
+
+            return competitionRegistrationMapper.insert(registration) > 0;
+        }
+    }
+
+
+    @Override
+    public boolean reviewRegistration(CompetitionReviewRequest request, HttpServletRequest httpRequest) {
+        User loginUser = (User) httpRequest.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+
+        Long registrationId = request.getRegistrationId();
+        Integer status = request.getStatus(); // 1-通过，2-拒绝
+
+        if (status == null || (status != 1 && status != 2)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "状态参数错误");
+        }
+
+        // 获取报名信息
+        CompetitionRegistration registration = competitionRegistrationMapper.selectById(registrationId);
+        if (registration == null || registration.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "报名记录不存在");
+        }
+
+        // 获取对应的竞赛
+        Competition competition = this.getById(registration.getCompetitionId());
+        if (competition == null || competition.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在");
+        }
+
+        // 权限验证：必须是竞赛创建者
+        if (!competition.getCreatorId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "只有竞赛创建者才能审核报名");
+        }
+
+        // 已审核的不能重复审核
+        if (registration.getStatus() != 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该报名已审核过");
+        }
+
+        // 更新状态
+        registration.setStatus(status);
+        registration.setUpdateTime(new Date());
+
+        int rows = competitionRegistrationMapper.updateById(registration);
+        return rows > 0;
+    }
+
+
 }
 
 

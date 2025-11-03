@@ -98,23 +98,18 @@ CREATE TABLE cms.team_member
     COMMENT '用户-队伍关系表';
 
 -- ----------------------------
--- 5. 临时会话消息表 message
+-- 5. 报名数据表 competition_registration
 -- ----------------------------
-
-CREATE TABLE cms.message
-(
-    id           BIGINT AUTO_INCREMENT COMMENT '消息ID'
-        PRIMARY KEY,
-    senderId     BIGINT                             NOT NULL COMMENT '发送者ID',
-    receiverId   BIGINT                             NULL COMMENT '接收者ID（若为私聊）',
-    teamId       BIGINT                             NULL COMMENT '所属队伍ID（若为队伍会话）',
-    content      TEXT                               NOT NULL COMMENT '消息内容',
-    type         TINYINT  DEFAULT 0                 NOT NULL COMMENT '消息类型 0-文本 1-图片 2-视频',
-    createTime   DATETIME DEFAULT CURRENT_TIMESTAMP NULL COMMENT '发送时间',
-    isRead       TINYINT  DEFAULT 0                 NOT NULL COMMENT '是否已读 0-未读 1-已读',
-    isDelete     TINYINT  DEFAULT 0                 NOT NULL COMMENT '是否删除',
-    CONSTRAINT fk_message_sender FOREIGN KEY (senderId) REFERENCES cms.user (id),
-    CONSTRAINT fk_message_receiver FOREIGN KEY (receiverId) REFERENCES cms.user (id),
-    CONSTRAINT fk_message_team FOREIGN KEY (teamId) REFERENCES cms.team (id)
-)
-    COMMENT '临时会话消息表（支持队伍或私聊）';
+CREATE TABLE cms.competition_registration (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '报名ID',
+    competitionId BIGINT NOT NULL COMMENT '竞赛ID',
+    userId BIGINT NULL COMMENT '报名用户ID（个人赛）',
+    teamId BIGINT NULL COMMENT '报名队伍ID（团队赛）',
+    status TINYINT DEFAULT 0 COMMENT '状态：0-待审核，1-已通过，2-拒绝',
+    createTime DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '报名时间',
+    updateTime DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    isDelete TINYINT DEFAULT 0 NOT NULL COMMENT '是否删除',
+    CONSTRAINT fk_registration_competition FOREIGN KEY (competitionId) REFERENCES cms.competition (id),
+    CONSTRAINT fk_registration_user FOREIGN KEY (userId) REFERENCES cms.user (id),
+    CONSTRAINT fk_registration_team FOREIGN KEY (teamId) REFERENCES cms.team (id)
+) COMMENT '竞赛报名表';

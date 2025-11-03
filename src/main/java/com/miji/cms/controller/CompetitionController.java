@@ -6,6 +6,8 @@ import com.miji.cms.common.ResultUtils;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.model.domain.Competition;
 import com.miji.cms.model.request.CompetitionCreateRequest;
+import com.miji.cms.model.request.CompetitionRegisterRequest;
+import com.miji.cms.model.request.CompetitionReviewRequest;
 import com.miji.cms.model.request.CompetitionUpdateRequest;
 import com.miji.cms.service.CompetitionService;
 import lombok.extern.slf4j.Slf4j;
@@ -107,4 +109,37 @@ public class CompetitionController {
         Competition competition = competitionService.getCompetitionById(id);
         return ResultUtils.success(competition);
     }
+
+    /**
+     * 竞赛报名
+     *
+     * @param request
+     * @param httpRequest
+     * @return
+     */
+    @PostMapping("/register")
+    public BaseResponse<Boolean> registerCompetition(
+            @RequestBody CompetitionRegisterRequest request,
+            HttpServletRequest httpRequest) {
+
+        if (request == null || request.getCompetitionId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛ID不能为空");
+        }
+
+        boolean result = competitionService.registerCompetition(request, httpRequest);
+        return ResultUtils.success(result);
+    }
+
+
+    @PostMapping("/review")
+    public BaseResponse<Boolean> reviewRegistration(@RequestBody CompetitionReviewRequest request,
+                                                    HttpServletRequest httpRequest) {
+        if (request == null || request.getRegistrationId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "报名ID不能为空");
+        }
+
+        boolean result = competitionService.reviewRegistration(request, httpRequest);
+        return ResultUtils.success(result);
+    }
+
 }
