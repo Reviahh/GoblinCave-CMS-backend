@@ -5,6 +5,7 @@ import com.miji.cms.common.ErrorCode;
 import com.miji.cms.common.ResultUtils;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.model.domain.Competition;
+import com.miji.cms.model.domain.CompetitionRegistration;
 import com.miji.cms.model.request.CompetitionCreateRequest;
 import com.miji.cms.model.request.CompetitionRegisterRequest;
 import com.miji.cms.model.request.CompetitionReviewRequest;
@@ -131,6 +132,13 @@ public class CompetitionController {
     }
 
 
+    /**
+     * 审核报名
+     *
+     * @param request
+     * @param httpRequest
+     * @return
+     */
     @PostMapping("/review")
     public BaseResponse<Boolean> reviewRegistration(@RequestBody CompetitionReviewRequest request,
                                                     HttpServletRequest httpRequest) {
@@ -140,6 +148,24 @@ public class CompetitionController {
 
         boolean result = competitionService.reviewRegistration(request, httpRequest);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 获取竞赛报名列表（仅创建者可见）
+     */
+    @GetMapping("/registration/list")
+    public BaseResponse<List<CompetitionRegistration>> listCompetitionRegistrations(
+            @RequestParam Long competitionId,
+            HttpServletRequest httpRequest) {
+
+        if (competitionId == null || competitionId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的竞赛ID");
+        }
+
+        List<CompetitionRegistration> registrations =
+                competitionService.listCompetitionRegistrations(competitionId, httpRequest);
+
+        return ResultUtils.success(registrations);
     }
 
 }

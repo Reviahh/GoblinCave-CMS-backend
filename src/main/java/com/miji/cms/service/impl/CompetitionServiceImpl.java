@@ -1,5 +1,6 @@
 package com.miji.cms.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.miji.cms.common.ErrorCode;
@@ -285,6 +286,34 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
 
         int rows = competitionRegistrationMapper.updateById(registration);
         return rows > 0;
+    }
+
+    @Override
+    public List<CompetitionRegistration> listCompetitionRegistrations(Long competitionId, HttpServletRequest httpRequest) {
+        User loginUser = (User) httpRequest.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+
+        // 获取竞赛信息
+        Competition competition = this.getById(competitionId);
+        if (competition == null || competition.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在");
+        }
+
+        // 权限验证：仅创建者可查看报名列表
+        if (!competition.getCreatorId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "只有竞赛创建者可查看报名列表");
+        }
+
+        // 查询报名信息
+        LambdaQueryWrapper<CompetitionRegistration> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CompetitionRegistration::getCompetitionId, competitionId)
+                .eq(CompetitionRegistration::getIsDelete, 0)
+                .orderByDesc(CompetitionRegistration::getCreateTime);
+
+        List<CompetitionRegistration> registrationList = competitionRegistrationMapper.selectList(queryWrapper);
+        return registrationList;
     }
 
 
