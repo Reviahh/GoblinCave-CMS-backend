@@ -133,3 +133,47 @@ CREATE TABLE `cms`.`competition_submission` (
     CONSTRAINT `fk_submission_competition` FOREIGN KEY (`competitionId`) REFERENCES `cms`.`competition` (`id`),
     CONSTRAINT `fk_submission_registration` FOREIGN KEY (`registrationId`) REFERENCES `cms`.`competition_registration` (`id`)
 )COMMENT='竞赛提交作品表';
+
+-- 1) 队友招募表
+CREATE TABLE IF NOT EXISTS `team_recruitment` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `userId` BIGINT NOT NULL COMMENT '发布者用户ID',
+  `competitionId` BIGINT NOT NULL COMMENT '所属竞赛ID',
+  `teamId` BIGINT NULL COMMENT '相关队伍ID（可为空，表示个人）',
+  `isTeam` TINYINT DEFAULT 0 NOT NULL COMMENT '是否代表队伍发布 0-个人 1-队伍',
+  `title` VARCHAR(255) NOT NULL,
+  `description` TEXT NULL,
+  `contact` VARCHAR(255) NULL,
+  `createTime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updateTime` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `isDelete` TINYINT DEFAULT 0 NOT NULL,
+  CONSTRAINT fk_recruitment_user FOREIGN KEY (userId) REFERENCES cms.user(id),
+  CONSTRAINT fk_recruitment_competition FOREIGN KEY (competitionId) REFERENCES cms.competition(id),
+  CONSTRAINT fk_recruitment_team FOREIGN KEY (teamId) REFERENCES cms.team(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='队友招募表';
+
+
+-- 2) 聊天会话表
+CREATE TABLE IF NOT EXISTS `chat_session` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `user1Id` BIGINT NOT NULL,
+  `user2Id` BIGINT NOT NULL,
+  `recruitmentId` BIGINT NULL COMMENT '可选：来源于某条招募信息',
+  `createTime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `isDelete` TINYINT DEFAULT 0 NOT NULL,
+  CONSTRAINT fk_session_user1 FOREIGN KEY (user1Id) REFERENCES cms.user(id),
+  CONSTRAINT fk_session_user2 FOREIGN KEY (user2Id) REFERENCES cms.user(id),
+  CONSTRAINT fk_session_recruitment FOREIGN KEY (recruitmentId) REFERENCES cms.team_recruitment(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='一对一会话表';
+
+-- 3) 聊天消息表
+CREATE TABLE IF NOT EXISTS `chat_message` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `sessionId` BIGINT NOT NULL,
+  `senderId` BIGINT NOT NULL,
+  `content` TEXT NOT NULL,
+  `createTime` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `isDelete` TINYINT DEFAULT 0 NOT NULL,
+  CONSTRAINT fk_message_session FOREIGN KEY (sessionId) REFERENCES cms.chat_session(id),
+  CONSTRAINT fk_message_sender FOREIGN KEY (senderId) REFERENCES cms.user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会话消息表';

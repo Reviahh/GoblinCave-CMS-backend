@@ -5,6 +5,7 @@ import com.miji.cms.common.ErrorCode;
 import com.miji.cms.common.ResultUtils;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.model.domain.Submission;
+import com.miji.cms.model.request.SubmissionRankVO;
 import com.miji.cms.model.request.SubmissionSubmitRequest;
 import com.miji.cms.model.request.SubmissionQueryRequest;
 import com.miji.cms.service.SubmissionService;
@@ -14,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -26,6 +28,7 @@ public class SubmissionController {
 
     @Resource
     private SubmissionService submissionService;
+
 
     /**
      * 提交作品（覆盖旧稿）
@@ -82,5 +85,33 @@ public class SubmissionController {
 
         Boolean result = submissionService.scoreSubmission(submissionId, score, httpRequest);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 成绩榜单（按照分数从高到低）
+     */
+    @GetMapping("/rank")
+    public BaseResponse<List<SubmissionRankVO>> getCompetitionRank(
+            @RequestParam Long competitionId) {
+        return ResultUtils.success(submissionService.getCompetitionRank(competitionId));
+    }
+
+    /**
+     * 导出成绩表为 Excel
+     */
+    @GetMapping("/export")
+    public void exportCompetitionScore(
+            @RequestParam Long competitionId,
+            HttpServletResponse response) {
+        submissionService.exportCompetitionScore(competitionId, response);
+    }
+
+    /**
+     * 查询个人/队伍的成绩详情
+     */
+    @GetMapping("/score/detail")
+    public BaseResponse<SubmissionRankVO> getScoreDetail(
+            @RequestParam Long submissionId) {
+        return ResultUtils.success(submissionService.getScoreDetail(submissionId));
     }
 }
