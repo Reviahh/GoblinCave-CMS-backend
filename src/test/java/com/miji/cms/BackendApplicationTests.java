@@ -24,7 +24,7 @@ class BackendApplicationTests {
         user.setEmail("12323@11.com");
         user.setUserRole(0);
         user.setIsDelete(0);
-        user.setProfile("");
+
 
         boolean result = userService.save(user);
         System.out.println(user.getId());

@@ -113,3 +113,23 @@ CREATE TABLE cms.competition_registration (
     CONSTRAINT fk_registration_user FOREIGN KEY (userId) REFERENCES cms.user (id),
     CONSTRAINT fk_registration_team FOREIGN KEY (teamId) REFERENCES cms.team (id)
 ) COMMENT '竞赛报名表';
+
+-- 提交表：competition_submission
+
+CREATE TABLE `cms`.`competition_submission` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '提交ID',
+    `competitionId` BIGINT NOT NULL COMMENT '竞赛ID',
+    `registrationId` BIGINT NOT NULL COMMENT '报名记录ID',
+    `userId` BIGINT NULL COMMENT '提交用户ID（个人提交）',
+    `teamId` BIGINT NULL COMMENT '提交队伍ID（团队提交）',
+    `fileUrl` VARCHAR(1024) NOT NULL COMMENT '作品文件访问URL（支持多媒体、压缩包等）',
+    `description` TEXT NULL COMMENT '作品描述（富文本）',
+    `score` INT NULL COMMENT '评分（管理员评审）',
+    `reviewerId` BIGINT NULL COMMENT '评分管理员ID',
+    `status` TINYINT DEFAULT 0 NOT NULL COMMENT '状态：0-已提交待评审，1-已评分',
+    `createTime` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
+    `updateTime` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `isDelete` TINYINT DEFAULT 0 NOT NULL COMMENT '是否删除',
+    CONSTRAINT `fk_submission_competition` FOREIGN KEY (`competitionId`) REFERENCES `cms`.`competition` (`id`),
+    CONSTRAINT `fk_submission_registration` FOREIGN KEY (`registrationId`) REFERENCES `cms`.`competition_registration` (`id`)
+)COMMENT='竞赛提交作品表';

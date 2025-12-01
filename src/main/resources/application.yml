@@ -7,6 +7,14 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+# =====================================
+# 静态资源映射配置
+# =====================================
+    static-path-pattern: /uploads/**
+  web:
+    resources:
+      static-locations: file:${file.upload-path}
+
   # =====================================
   # 数据源配置（MySQL）
   # =====================================
@@ -14,7 +22,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/cms
     username: root
-    password: 123456
+    password: 12345678
 
   # =====================================
   # 时间格式与时区
@@ -48,4 +56,8 @@ mybatis-plus:
 # =====================================
 server:
   port: 8080
-
+# =====================================
+# 文件路径配置
+# =====================================
+file:
+  upload-path: D:/AboutCode/SchoolProject/cms/uploads/
