@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="generator.mapper.TeamRecruitmentMapper">
+
+    <resultMap id="BaseResultMap" type="generator.domain.TeamRecruitment">
+            <id property="id" column="id" />
+            <result property="userId" column="userId" />
+            <result property="competitionid" column="competitionId" />
+            <result property="teamid" column="teamId" />
+            <result property="isteam" column="isTeam" />
+            <result property="title" column="title" />
+            <result property="description" column="description" />
+            <result property="contact" column="contact" />
+            <result property="createtime" column="createTime" />
+            <result property="updatetime" column="updateTime" />
+            <result property="isdelete" column="isDelete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,userId,competitionId,teamId,isTeam,title,
+        description,contact,createTime,updateTime,isDelete
+    </sql>
+</mapper>

@@ -1,5 +1,6 @@
 package com.miji.cms.service.impl;
 
+import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.miji.cms.common.ErrorCode;
@@ -10,18 +11,22 @@ import com.miji.cms.mapper.TeamMemberMapper;
 import com.miji.cms.mapper.TeamMapper;
 import com.miji.cms.model.domain.*;
 import com.miji.cms.model.request.SubmissionQueryRequest;
+import com.miji.cms.model.request.SubmissionRankVO;
 import com.miji.cms.model.request.SubmissionSubmitRequest;
-import com.miji.cms.service.CompetitionService;
-import com.miji.cms.service.FileUploadService;
-import com.miji.cms.service.SubmissionService;
+import com.miji.cms.service.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.stream.Collectors;
+
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +34,12 @@ import java.util.UUID;
 @Service
 public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapper, Submission>
         implements SubmissionService {
+
+    @Resource
+    private UserService userService;
+
+    @Resource
+    private TeamService teamService;
 
     @Resource
     private CompetitionService competitionService;
@@ -166,6 +177,87 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         submission.setStatus(1); // 已评分
         submission.setUpdateTime(new Date());
         return updateById(submission);
+    }
+
+    /**
+     * 竞赛成绩榜单（按分数降序）
+     */
+    @Override
+    public List<SubmissionRankVO> getCompetitionRank(Long competitionId) {
+
+        List<Submission> list = this.lambdaQuery()
+                .eq(Submission::getCompetitionId, competitionId)
+                .isNotNull(Submission::getScore)
+                .orderByDesc(Submission::getScore)
+                .list();
+
+        return list.stream().map(this::convertToRankVO).collect(Collectors.toList());
+
+    }
+
+
+    /**
+     * 导出 Excel 成绩表
+     */
+    @Override
+    public void exportCompetitionScore(Long competitionId, HttpServletResponse response) {
+
+        List<SubmissionRankVO> data = getCompetitionRank(competitionId);
+
+        // 设置 Excel 下载头
+        try {
+            response.setContentType("application/vnd.ms-excel");
+            response.setCharacterEncoding("utf-8");
+            String fileName = URLEncoder.encode("竞赛成绩表-" + competitionId, "UTF-8");
+
+            response.setHeader("Content-Disposition",
+                    "attachment;filename=" + fileName + ".xlsx");
+
+            // 使用 EasyExcel 导出
+            EasyExcel.write(response.getOutputStream(), SubmissionRankVO.class)
+                    .sheet("成绩榜")
+                    .doWrite(data);
+
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "导出 Excel 失败");
+        }
+    }
+
+
+    /**
+     * 查询个人或队伍的成绩详情
+     */
+    @Override
+    public SubmissionRankVO getScoreDetail(Long submissionId) {
+        Submission submission = this.getById(submissionId);
+        if (submission == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "提交记录不存在");
+        }
+        return convertToRankVO(submission);
+    }
+
+
+    /**
+     * VO 转换工具（补充队伍名、用户名）
+     */
+    private SubmissionRankVO convertToRankVO(Submission submission) {
+        SubmissionRankVO vo = new SubmissionRankVO();
+
+        BeanUtils.copyProperties(submission, vo);
+
+        // 查询用户昵称
+        if (submission.getUserId() != null) {
+            User user = userService.getById(submission.getUserId());
+            if (user != null) vo.setSubmitUserName(user.getUserName());
+        }
+
+        // 查询队伍名称
+        if (submission.getTeamId() != null) {
+            Team team = teamService.getById(submission.getTeamId());
+            if (team != null) vo.setTeamName(team.getName());
+        }
+
+        return vo;
     }
 }
 
