@@ -2,7 +2,10 @@ package com.miji.cms.model.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
@@ -12,7 +15,8 @@ import lombok.Data;
  */
 @TableName(value ="competition_submission")
 @Data
-public class Submission {
+public class Submission implements Serializable {
+    private static final long serialVersionUID = 7048728379832793743L;
     /**
      * 提交ID
      */
@@ -77,5 +81,6 @@ public class Submission {
     /**
      * 是否删除
      */
+    @TableLogic
     private Integer isDelete;
 }

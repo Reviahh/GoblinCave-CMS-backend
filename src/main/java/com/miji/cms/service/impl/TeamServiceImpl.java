@@ -153,8 +153,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         }
 
         // 软删除成员记录
-        member.setIsDelete(1);
-        return teamMemberService.updateById(member);
+
+        return this.removeById(member);
     }
 
 

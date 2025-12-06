@@ -114,9 +114,8 @@ public class TeamRecruitmentServiceImpl extends ServiceImpl<TeamRecruitmentMappe
         if (!exist.getUserId().equals(loginUser.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH, "无权限删除");
         }
-        exist.setIsDelete(1);
-        exist.setUpdateTime(new Date());
-        return recruitmentMapper.updateById(exist) > 0;
+
+        return this.removeById(id);
     }
 
     @Override
