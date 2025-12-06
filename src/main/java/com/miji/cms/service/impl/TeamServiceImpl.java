@@ -174,6 +174,110 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         return result;
     }
 
+    // ----------------- 以下为新增方法 -----------------
+
+    @Override
+    public boolean deleteTeam(Long id, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        Team team = this.getById(id);
+        if (team == null) {
+            // 修正：使用 NULL_ERROR
+            throw new BusinessException(ErrorCode.NULL_ERROR, "队伍不存在");
+        }
+        // 仅队长或管理员可解散
+        if (!team.getUserId().equals(loginUser.getId()) && !userService.isAdmin(request)) {
+            // 修正：使用 NO_AUTH
+            throw new BusinessException(ErrorCode.NO_AUTH, "无权限操作");
+        }
+        // 删除队伍成员
+        QueryWrapper<TeamMember> memberQuery = new QueryWrapper<>();
+        memberQuery.eq("teamId", id);
+        teamMemberMapper.delete(memberQuery);
+        // 删除队伍
+        return this.removeById(id);
+    }
+
+    @Override
+    public boolean updateTeam(com.miji.cms.model.request.TeamUpdateRequest updateRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        Team team = this.getById(updateRequest.getId());
+        if (team == null) {
+            // 修正：使用 NULL_ERROR
+            throw new BusinessException(ErrorCode.NULL_ERROR, "队伍不存在");
+        }
+        // 仅队长或管理员可修改
+        if (!team.getUserId().equals(loginUser.getId()) && !userService.isAdmin(request)) {
+            // 修正：使用 NO_AUTH
+            throw new BusinessException(ErrorCode.NO_AUTH, "无权限操作");
+        }
+
+        Team updateTeam = new Team();
+        org.springframework.beans.BeanUtils.copyProperties(updateRequest, updateTeam);
+        return this.updateById(updateTeam);
+    }
+
+    @Override
+    public List<Map<String, Object>> listTeams(Long competitionId) {
+        QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("competitionId", competitionId);
+        List<Team> teamList = this.list(queryWrapper);
+
+        // 转换为 Map 列表
+        return teamList.stream().map(team -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", team.getId());
+            map.put("name", team.getName());
+            map.put("competitionId", team.getCompetitionId());
+            map.put("userId", team.getUserId()); // 队长ID
+            map.put("maxNum", team.getMaxNum());
+            map.put("currentNum", team.getCurrentNum());
+            // 补充成员信息（可选，如果列表页需要展示成员头像等）
+            List<TeamMember> members = teamMemberService.list(new QueryWrapper<TeamMember>().eq("teamId", team.getId()));
+            map.put("members", members);
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> listMyTeams(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        Long userId = loginUser.getId();
+
+        // 1. 我创建的队伍
+        QueryWrapper<Team> createdQuery = new QueryWrapper<>();
+        createdQuery.eq("userId", userId);
+        List<Team> createdTeams = this.list(createdQuery);
+
+        // 2. 我加入的队伍
+        QueryWrapper<TeamMember> memberQuery = new QueryWrapper<>();
+        memberQuery.eq("userId", userId);
+        List<TeamMember> memberships = teamMemberMapper.selectList(memberQuery);
+        java.util.Set<Long> joinedTeamIds = memberships.stream().map(TeamMember::getTeamId).collect(java.util.stream.Collectors.toSet());
+
+        List<Team> joinedTeams = new java.util.ArrayList<>();
+        if (!joinedTeamIds.isEmpty()) {
+            joinedTeams = this.listByIds(joinedTeamIds);
+        }
+
+        // 3. 合并去重
+        java.util.Set<Team> allTeams = new java.util.HashSet<>();
+        allTeams.addAll(createdTeams);
+        allTeams.addAll(joinedTeams);
+
+        return allTeams.stream().map(team -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", team.getId());
+            map.put("name", team.getName());
+            map.put("competitionId", team.getCompetitionId());
+            map.put("leaderId", team.getUserId()); // 前端可能用 leaderId 或 userId
+            map.put("userId", team.getUserId());
+            // 补充成员信息
+            List<TeamMember> members = teamMemberService.list(new QueryWrapper<TeamMember>().eq("teamId", team.getId()));
+            map.put("members", members);
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
 }
 
 

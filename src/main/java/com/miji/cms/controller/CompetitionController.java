@@ -34,10 +34,6 @@ public class CompetitionController {
 
     /**
      * 新增竞赛
-     *
-     * @param request
-     * @param httpRequest
-     * @return
      */
     @PostMapping("/add")
     public BaseResponse<Long> addCompetition(@RequestBody CompetitionCreateRequest request, HttpServletRequest httpRequest) {
@@ -50,10 +46,6 @@ public class CompetitionController {
 
     /**
      * 更新竞赛信息
-     *
-     * @param request
-     * @param httpRequest
-     * @return
      */
     @PostMapping("/update")
     public BaseResponse<Boolean> updateCompetition(
@@ -70,13 +62,10 @@ public class CompetitionController {
 
     /**
      * 删除竞赛
-     *
-     * @param id
-     * @param request
-     * @return
+     * 修改说明：将 @RequestBody 改为 @RequestParam，以支持 ?id=xxx 传参
      */
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteCompetition(@RequestBody Long id, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteCompetition(@RequestParam Long id, HttpServletRequest request) {
         if (id == null || id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的竞赛ID");
         }
@@ -87,9 +76,6 @@ public class CompetitionController {
 
     /**
      * 查询竞赛列表
-     *
-     * @param name
-     * @return
      */
     @GetMapping("/list")
     public BaseResponse<List<Competition>> listCompetitions(@RequestParam(required = false) String name) {
@@ -98,12 +84,10 @@ public class CompetitionController {
 
     /**
      * 获取竞赛详情
-     *
-     * @param id
-     * @return
+     * 修改说明：将 @RequestBody 改为 @RequestParam，因为 GET 请求不应带 Body
      */
     @GetMapping("/detail")
-    public BaseResponse<Competition> getCompetitionDetail(@RequestBody Long id) {
+    public BaseResponse<Competition> getCompetitionDetail(@RequestParam Long id) {
         if (id == null || id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛ID不合法");
         }
@@ -113,10 +97,6 @@ public class CompetitionController {
 
     /**
      * 竞赛报名
-     *
-     * @param request
-     * @param httpRequest
-     * @return
      */
     @PostMapping("/register")
     public BaseResponse<Boolean> registerCompetition(
@@ -134,10 +114,6 @@ public class CompetitionController {
 
     /**
      * 审核报名
-     *
-     * @param request
-     * @param httpRequest
-     * @return
      */
     @PostMapping("/review")
     public BaseResponse<Boolean> reviewRegistration(@RequestBody CompetitionReviewRequest request,
