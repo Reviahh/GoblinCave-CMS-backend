@@ -17,6 +17,7 @@ import java.util.List;
  * 队友招募模块接口
  */
 @RestController
+@CrossOrigin(origins = {"http://localhost:5173/","http://localhost:3000/","https://miji-frontend.vercel.app/"},allowCredentials = "true")
 @RequestMapping("/recruitment")
 public class RecruitmentController {
 

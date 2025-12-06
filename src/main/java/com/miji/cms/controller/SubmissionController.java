@@ -23,6 +23,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/submission")
+@CrossOrigin(origins = {"http://localhost:5173/","http://localhost:3000/","https://miji-frontend.vercel.app/"},allowCredentials = "true")
 @Slf4j
 public class SubmissionController {
 

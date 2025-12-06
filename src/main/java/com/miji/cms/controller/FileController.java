@@ -3,10 +3,7 @@ package com.miji.cms.controller;
 import com.miji.cms.common.BaseResponse;
 import com.miji.cms.common.ResultUtils;
 import com.miji.cms.service.FileUploadService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
@@ -15,6 +12,7 @@ import javax.annotation.Resource;
  * 文件接口
  */
 @RestController
+@CrossOrigin(origins = {"http://localhost:5173/","http://localhost:3000/","https://miji-frontend.vercel.app/"},allowCredentials = "true")
 @RequestMapping("/file")
 public class FileController {
 

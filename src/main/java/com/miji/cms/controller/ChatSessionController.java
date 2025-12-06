@@ -16,6 +16,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/chat/session")
+@CrossOrigin(origins = {"http://localhost:5173/","http://localhost:3000/","https://miji-frontend.vercel.app/"},allowCredentials = "true")
 public class ChatSessionController {
 
     @Resource
