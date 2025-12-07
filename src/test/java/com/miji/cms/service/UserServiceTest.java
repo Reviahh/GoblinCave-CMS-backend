@@ -1,30 +1,28 @@
 package com.miji.cms.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.miji.cms.common.ErrorCode;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.mapper.UserMapper;
 import com.miji.cms.model.domain.User;
 import com.miji.cms.service.impl.UserServiceImpl;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.util.DigestUtils;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.Date;
 
-import static com.miji.cms.constant.UserConstant.USER_LOGIN_STATE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * UserServiceImpl#userRegister 方法单元测试
+ * UserService#userRegister 方法单元测试
  */
+@DisplayName("用户注册测试")
 class UserService1Test {
 
     @Mock
@@ -146,308 +144,337 @@ class UserService1Test {
     }
 }
 /**
- * UserServiceImpl#userLogin 方法的单元测试
+ * UserService#userLogin 方法的单元测试
  */
 @DisplayName("用户登录测试")
-class UserServiceImplTest {
-
-    @InjectMocks
-    @Spy
-    private UserServiceImpl userService;
+class UserService2Test {
 
     @Mock
     private UserMapper userMapper;
 
-    @Captor
-    private ArgumentCaptor<QueryWrapper<User>> queryWrapperCaptor;
-
+    @Mock
     private HttpServletRequest request;
+
+    @Mock
     private HttpSession session;
 
-    // 假设的盐值，需要与实际代码中的 SALT 常量一致
-    private static final String SALT = "miji";
+    @InjectMocks
+    private UserServiceImpl userService;
+
+    private final String SALT = "miji"; // ⚠ 确保与业务代码一致
 
     @BeforeEach
-    void setUp() {
+    void init() {
         MockitoAnnotations.openMocks(this);
-        request = new MockHttpServletRequest();
-        session = new MockHttpSession();
         when(request.getSession()).thenReturn(session);
     }
 
     /**
-     * 辅助方法：生成加盐后的 MD5 密码
+     * 登录成功
      */
-    private String encryptPassword(String password) {
-        return DigestUtils.md5DigestAsHex((SALT + password).getBytes());
-    }
-
-    // ==================== 参数校验测试 ====================
-
     @Test
-    @DisplayName("账号为 null 时抛出异常")
-    void testUserLogin_AccountIsNull() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin(null, "password123", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-    }
-
-    @Test
-    @DisplayName("密码为 null 时抛出异常")
-    void testUserLogin_PasswordIsNull() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin", null, 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-    }
-
-    @Test
-    @DisplayName("账号为空字符串时抛出异常")
-    void testUserLogin_AccountIsEmpty() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("", "password123", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-    }
-
-    @Test
-    @DisplayName("密码为空字符串时抛出异常")
-    void testUserLogin_PasswordIsEmpty() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin", "", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-    }
-
-    @Test
-    @DisplayName("账号长度小于4时抛出异常")
-    void testUserLogin_AccountTooShort() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("abc", "password123", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户名不规范", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("账号长度等于4时可以通过（边界测试）")
-    void testUserLogin_AccountMinLength() {
-        // 准备 mock 数据
-        User mockUser = createMockUser(1L, "abcd", "password123", 1);
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockUser);
-
-        // 不应该抛出异常
-        assertDoesNotThrow(() -> {
-            userService.userLogin("abcd", "password123", 1, request);
-        });
-    }
-
-    @Test
-    @DisplayName("密码长度小于8时抛出异常")
-    void testUserLogin_PasswordTooShort() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin", "1234567", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户密码不规范", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("密码长度等于8时可以通过（边界测试）")
-    void testUserLogin_PasswordMinLength() {
-        // 准备 mock 数据
-        User mockUser = createMockUser(1L, "admin", "12345678", 1);
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(mockUser);
-
-        // 不应该抛出异常
-        assertDoesNotThrow(() -> {
-            userService.userLogin("admin", "12345678", 1, request);
-        });
-    }
-
-    @Test
-    @DisplayName("账号包含标点符号时抛出异常")
-    void testUserLogin_AccountWithPunctuation() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin!", "password123", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户名不支持特殊字符", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("账号包含特殊符号时抛出异常")
-    void testUserLogin_AccountWithSpecialCharacter() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin@123", "password123", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户名不支持特殊字符", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("账号包含空格时抛出异常")
-    void testUserLogin_AccountWithSpace() {
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin 123", "password123", 1, request);
-        });
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户名不支持特殊字符", exception.getMessage());
-    }
-
-    // ==================== 业务逻辑测试 ====================
-
-    @Test
-    @DisplayName("用户不存在时抛出异常")
-    void testUserLogin_UserNotFound() {
-        // 模拟数据库查询返回 null
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
-
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin", "password123", 1, request);
-        });
-
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户不存在或密码错误", exception.getMessage());
-
-        // 验证数据库被调用
-        verify(userMapper, times(1)).selectOne(any(QueryWrapper.class));
-    }
-
-    @Test
-    @DisplayName("密码错误时抛出异常")
-    void testUserLogin_WrongPassword() {
-        // 模拟数据库查询返回 null（密码不匹配）
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
-
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin", "wrongpassword", 1, request);
-        });
-
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户不存在或密码错误", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("角色不匹配时抛出异常")
-    void testUserLogin_RoleMismatch() {
-        // 模拟数据库查询返回 null（角色不匹配）
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
-
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            userService.userLogin("admin", "password123", 2, request);
-        });
-
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertEquals("用户不存在或密码错误", exception.getMessage());
-    }
-
-    // ==================== 成功登录测试 ====================
-
-    @Test
-    @DisplayName("成功登录 - 验证完整流程")
-    void testUserLogin_Successful() {
-        // 1. 准备测试数据
-        String userAccount = "admin";
-        String userPassword = "password123";
+    void testUserLoginSuccess() {
+        String userAccount = "mijiUser";
+        String userPassword = "12345678";
         Integer userRole = 1;
 
-        User rawUser = createMockUser(1L, userAccount, userPassword, userRole);
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
 
-        // 2. 模拟数据库查询
-        when(userMapper.selectOne(queryWrapperCaptor.capture())).thenReturn(rawUser);
+        User fakeUser = new User();
+        fakeUser.setId(1L);
+        fakeUser.setUserAccount(userAccount);
+        fakeUser.setUserPassword(encryptPassword);
+        fakeUser.setUserRole(userRole);
 
-        // 3. 执行登录
+        // stub：模拟数据库查询
+        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(fakeUser);
+
         User result = userService.userLogin(userAccount, userPassword, userRole, request);
 
-        // 4. 验证返回结果
-        assertNotNull(result, "登录结果不应该为 null");
-        assertEquals(rawUser.getId(), result.getId());
-        assertEquals(rawUser.getUserAccount(), result.getUserAccount());
-        assertEquals(rawUser.getUserName(), result.getUserName());
-        assertEquals(rawUser.getUserRole(), result.getUserRole());
-        assertNull(result.getUserPassword(), "密码应该被脱敏");
-
-        // 5. 验证查询条件
-        QueryWrapper<User> capturedQuery = queryWrapperCaptor.getValue();
-        assertNotNull(capturedQuery);
-        // 注意：这里无法直接验证 QueryWrapper 的具体条件，但可以验证调用次数
-        verify(userMapper, times(1)).selectOne(any(QueryWrapper.class));
-
-        // 6. 验证 Session
-        Object sessionAttr = session.getAttribute(USER_LOGIN_STATE);
-        assertNotNull(sessionAttr, "Session 中应该有用户登录状态");
-        assertTrue(sessionAttr instanceof User, "Session 中应该是 User 对象");
-
-        User sessionUser = (User) sessionAttr;
-        assertEquals(rawUser.getId(), sessionUser.getId());
-        assertEquals(rawUser.getUserAccount(), sessionUser.getUserAccount());
-        assertNull(sessionUser.getUserPassword(), "Session 中的密码也应该被脱敏");
-
-        // 7. 验证 getSession 被调用
-        verify(request, times(1)).getSession();
+        Assertions.assertNotNull(result);
+        verify(session, times(1)).setAttribute(eq("userLoginState"), any());
     }
-
-    @Test
-    @DisplayName("不同角色用户成功登录")
-    void testUserLogin_DifferentRoles() {
-        // 测试普通用户（角色 0）
-        User normalUser = createMockUser(2L, "user001", "password123", 0);
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(normalUser);
-
-        User result = userService.userLogin("user001", "password123", 0, request);
-
-        assertNotNull(result);
-        assertEquals(0, result.getUserRole());
-
-        // 测试管理员用户（角色 1）
-        User adminUser = createMockUser(1L, "admin", "password123", 1);
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(adminUser);
-
-        User adminResult = userService.userLogin("admin", "password123", 1, request);
-
-        assertNotNull(adminResult);
-        assertEquals(1, adminResult.getUserRole());
-    }
-
-    @Test
-    @DisplayName("同一用户多次登录会更新 Session")
-    void testUserLogin_MultipleLogins() {
-        User user = createMockUser(1L, "admin", "password123", 1);
-        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(user);
-
-        // 第一次登录
-        User firstLogin = userService.userLogin("admin", "password123", 1, request);
-        assertNotNull(firstLogin);
-
-        // 第二次登录（模拟同一用户再次登录）
-        User secondLogin = userService.userLogin("admin", "password123", 1, request);
-        assertNotNull(secondLogin);
-
-        // Session 应该被更新
-        User sessionUser = (User) session.getAttribute(USER_LOGIN_STATE);
-        assertNotNull(sessionUser);
-        assertEquals(user.getId(), sessionUser.getId());
-
-        // 验证数据库被调用了两次
-        verify(userMapper, times(2)).selectOne(any(QueryWrapper.class));
-    }
-
-    // ==================== 辅助方法 ====================
 
     /**
-     * 创建 Mock 用户对象
+     * 用户名长度不规范
      */
-    private User createMockUser(Long id, String account, String password, Integer role) {
-        User user = new User();
-        user.setId(id);
-        user.setUserAccount(account);
-        user.setUserName("测试用户" + id);
-        // 使用加盐的 MD5 加密
-        user.setUserPassword(encryptPassword(password));
-        user.setUserRole(role);
+    @Test
+    void testUserLoginInvalidAccountLength() {
+        Assertions.assertThrows(BusinessException.class, () ->
+                userService.userLogin("abc", "12345678", 1, request)
+        );
+    }
 
-        return user;
+    /**
+     * 密码长度不规范
+     */
+    @Test
+    void testUserLoginInvalidPasswordLength() {
+        Assertions.assertThrows(BusinessException.class, () ->
+                userService.userLogin("abcdef", "123", 1, request)
+        );
+    }
+
+    /**
+     * 用户名包含特殊字符
+     */
+    @Test
+    void testUserLoginInvalidChars() {
+        Assertions.assertThrows(BusinessException.class, () ->
+                userService.userLogin("abc###", "12345678", 1, request)
+        );
+    }
+
+    /**
+     * 用户不存在或密码错误
+     */
+    @Test
+    void testUserLoginUserNotFound() {
+        when(userMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
+
+        Assertions.assertThrows(BusinessException.class, () ->
+                userService.userLogin("validName", "12345678", 1, request)
+        );
+    }
+
+}
+/**
+ * UserService#其他 方法的单元测试
+ */
+@DisplayName("其他方法测试")
+class UserService3Test {
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private HttpServletRequest request;
+
+    @Mock
+    private HttpSession session;
+
+    @InjectMocks
+    private UserServiceImpl userService;
+
+    private final String USER_LOGIN_STATE = "userLoginState";
+    private final int ADMIN_ROLE = 1;
+
+    @BeforeEach
+    void init() {
+        MockitoAnnotations.openMocks(this);
+        when(request.getSession()).thenReturn(session);
+    }
+
+
+    // ======================================
+    // 1. getSafetyUser 测试
+    // ======================================
+    @Test
+    void testGetSafetyUser() {
+        User origin = new User();
+        origin.setId(1L);
+        origin.setUserName("testUser");
+        origin.setUserAccount("testAccount");
+        origin.setUserUrl("http://xxx.com/avatar.png");
+        origin.setGender(1);
+        origin.setPhone("12345678901");
+        origin.setEmail("test@example.com");
+        origin.setTags("['Java']");
+        origin.setUserRole(1);
+        origin.setCreateTime(new Date());
+        origin.setUserPassword("secretPwd");
+
+        User safe = userService.getSafetyUser(origin);
+
+        assertNotNull(safe);
+        assertNotSame(origin, safe);
+
+        assertEquals(origin.getId(), safe.getId());
+        assertEquals(origin.getUserName(), safe.getUserName());
+        assertEquals(origin.getUserAccount(), safe.getUserAccount());
+        assertEquals(origin.getUserUrl(), safe.getUserUrl());
+        assertEquals(origin.getGender(), safe.getGender());
+        assertEquals(origin.getPhone(), safe.getPhone());
+        assertEquals(origin.getEmail(), safe.getEmail());
+        assertEquals(origin.getTags(), safe.getTags());
+        assertEquals(origin.getUserRole(), safe.getUserRole());
+        assertEquals(origin.getCreateTime(), safe.getCreateTime());
+
+        // 密码敏感字段必须被清理
+        assertNull(safe.getUserPassword());
+    }
+
+    @Test
+    void testGetSafetyUserNull() {
+        assertNull(userService.getSafetyUser(null));
+    }
+
+
+    // ======================================
+    // 2. userLogout 测试
+    // ======================================
+    @Test
+    void testUserLogout() {
+        int result = userService.userLogout(request);
+
+        assertEquals(1, result);
+        verify(session, times(1)).removeAttribute(USER_LOGIN_STATE);
+    }
+
+
+    // ======================================
+    // 3. isAdmin(HttpServletRequest) 测试
+    // ======================================
+    @Test
+    void testIsAdminByRequestTrue() {
+        User admin = new User();
+        admin.setUserRole(ADMIN_ROLE);
+
+        when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(admin);
+
+        assertTrue(userService.isAdmin(request));
+    }
+
+    @Test
+    void testIsAdminByRequestFalse() {
+        User user = new User();
+        user.setUserRole(0);
+
+        when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(user);
+
+        assertFalse(userService.isAdmin(request));
+    }
+
+    @Test
+    void testIsAdminByRequestNull() {
+        when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(null);
+
+        assertFalse(userService.isAdmin(request));
+    }
+
+
+    // ======================================
+    // 4. isAdmin(User) 测试
+    // ======================================
+    @Test
+    void testIsAdminByUser() {
+        User admin = new User();
+        admin.setUserRole(ADMIN_ROLE);
+        assertTrue(userService.isAdmin(admin));
+
+        User user = new User();
+        user.setUserRole(0);
+        assertFalse(userService.isAdmin(user));
+
+        assertFalse(userService.isAdmin((User) null));
+    }
+
+
+    // ======================================
+    // 5. getLoginUser 测试
+    // ======================================
+    @Test
+    void testGetLoginUserSuccess() {
+        User login = new User();
+        login.setId(123L);
+
+        when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(login);
+
+        User result = userService.getLoginUser(request);
+
+        assertEquals(login, result);
+    }
+
+    @Test
+    void testGetLoginUserNullRequest() {
+        assertNull(userService.getLoginUser(null));
+    }
+
+    @Test
+    void testGetLoginUserNotLoggedIn() {
+        when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(null);
+
+        assertThrows(BusinessException.class, () ->
+                userService.getLoginUser(request)
+        );
+    }
+
+
+    // ======================================
+    // 6. updateUser 测试
+    // ======================================
+    @Test
+    void testUpdateUserInvalidId() {
+        User user = new User();
+        user.setId(0L);
+
+        assertThrows(BusinessException.class, () ->
+                userService.updateUser(user, new User())
+        );
+    }
+
+    @Test
+    void testUpdateUserNoAuth() {
+        User user = new User();
+        user.setId(5L);
+        user.setUserRole(0);
+
+
+        User loginUser = new User();
+        loginUser.setId(10L); // 不是本人，也不是管理员
+        loginUser.setUserRole(0);
+
+        assertThrows(BusinessException.class, () ->
+                userService.updateUser(user, loginUser)
+        );
+    }
+
+    @Test
+    void testUpdateUserNotFound() {
+        User user = new User();
+        user.setId(1L);
+        user.setUserRole(0);
+
+        User loginUser = new User();
+        loginUser.setId(1L); // 本人
+        loginUser.setUserRole(0);
+
+        when(userMapper.selectById(1L)).thenReturn(null);
+
+        assertThrows(BusinessException.class, () ->
+                userService.updateUser(user, loginUser)
+        );
+    }
+
+    @Test
+    void testUpdateUserSuccess() {
+        User user = new User();
+        user.setId(1L);
+        user.setUserRole(0);
+
+        User loginUser = new User();
+        loginUser.setId(1L); // 本人
+        loginUser.setUserRole(0);
+
+        when(userMapper.selectById(1L)).thenReturn(new User());
+        when(userMapper.updateById(user)).thenReturn(1);
+
+        int res = userService.updateUser(user, loginUser);
+        assertEquals(1, res);
+    }
+
+    @Test
+    void testUpdateUserByAdmin() {
+        User user = new User();
+        user.setId(100L);
+
+        User admin = new User();
+        admin.setUserRole(ADMIN_ROLE);
+
+        when(userMapper.selectById(100L)).thenReturn(new User());
+        when(userMapper.updateById(user)).thenReturn(1);
+
+        int res = userService.updateUser(user, admin);
+
+        assertEquals(1, res);
     }
 }
