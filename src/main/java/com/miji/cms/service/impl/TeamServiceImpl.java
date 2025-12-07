@@ -154,7 +154,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
         // 软删除成员记录
 
-        return this.removeById(member);
+        return teamMemberService.removeById(member.getId());
     }
 
 
@@ -279,7 +279,6 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
 }
-
 
 
 
