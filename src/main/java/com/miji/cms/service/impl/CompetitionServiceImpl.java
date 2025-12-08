@@ -203,8 +203,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             // 检查该队伍是否已报名此竞赛
             QueryWrapper<CompetitionRegistration> query = new QueryWrapper<>();
             query.eq("competitionId", competitionId)
-                    .eq("teamId", teamId)
-                    .eq("isDelete", 0);
+                    .eq("teamId", teamId);
             if (competitionRegistrationMapper.selectCount(query) > 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "该队伍已报名此竞赛");
             }
@@ -215,7 +214,6 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             registration.setTeamId(teamId);
             registration.setUserId(loginUser.getId()); // 队长ID
             registration.setStatus(0); // 0-待审核
-            registration.setIsDelete(0);
             registration.setCreateTime(new Date());
             registration.setUpdateTime(new Date());
 
@@ -225,8 +223,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             // 个人赛逻辑
             QueryWrapper<CompetitionRegistration> query = new QueryWrapper<>();
             query.eq("competitionId", competitionId)
-                    .eq("userId", loginUser.getId())
-                    .eq("isDelete", 0);
+                    .eq("userId", loginUser.getId());
             if (competitionRegistrationMapper.selectCount(query) > 0) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "已报名该竞赛");
             }
@@ -235,7 +232,6 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             registration.setCompetitionId(competitionId);
             registration.setUserId(loginUser.getId());
             registration.setStatus(0); // 待审核
-            registration.setIsDelete(0);
             registration.setCreateTime(new Date());
             registration.setUpdateTime(new Date());
 
@@ -309,7 +305,6 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         // 查询报名信息
         LambdaQueryWrapper<CompetitionRegistration> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(CompetitionRegistration::getCompetitionId, competitionId)
-                .eq(CompetitionRegistration::getIsDelete, 0)
                 .orderByDesc(CompetitionRegistration::getCreateTime);
 
         List<CompetitionRegistration> registrationList = competitionRegistrationMapper.selectList(queryWrapper);
@@ -327,7 +322,6 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         LambdaQueryWrapper<CompetitionRegistration> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(CompetitionRegistration::getUserId, loginUser.getId())
                 .eq(CompetitionRegistration::getStatus, 1) // 只查询已通过的报名
-                .eq(CompetitionRegistration::getIsDelete, 0)
                 .orderByDesc(CompetitionRegistration::getUpdateTime);
 
         List<CompetitionRegistration> registrationList = competitionRegistrationMapper.selectList(queryWrapper);
@@ -342,10 +336,9 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
 
-        // 批量查询竞赛信息
+        // 批量查询竞赛信息 (isDelete is handled by @TableLogic)
         LambdaQueryWrapper<Competition> competitionQueryWrapper = new LambdaQueryWrapper<>();
         competitionQueryWrapper.in(Competition::getId, competitionIds)
-                .eq(Competition::getIsDelete, 0)
                 .orderByDesc(Competition::getCreateTime);
 
         return this.list(competitionQueryWrapper);
