@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -328,7 +329,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
 
         // 提取竞赛ID列表
         if (registrationList == null || registrationList.isEmpty()) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         List<Long> competitionIds = registrationList.stream()
