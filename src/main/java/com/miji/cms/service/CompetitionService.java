@@ -84,4 +84,12 @@ public interface CompetitionService extends IService<Competition> {
      */
     List<CompetitionRegistration> listCompetitionRegistrations(Long competitionId, HttpServletRequest httpRequest);
 
+    /**
+     * 获取用户已报名的竞赛列表（仅返回已通过审核的）
+     *
+     * @param httpRequest HTTP请求
+     * @return 用户已报名的竞赛列表
+     */
+    List<Competition> listMyCompetitions(HttpServletRequest httpRequest);
+
 }

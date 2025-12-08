@@ -316,6 +316,41 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         return registrationList;
     }
 
+    @Override
+    public List<Competition> listMyCompetitions(HttpServletRequest httpRequest) {
+        User loginUser = (User) httpRequest.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+
+        // 查询用户已通过审核的报名记录
+        LambdaQueryWrapper<CompetitionRegistration> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CompetitionRegistration::getUserId, loginUser.getId())
+                .eq(CompetitionRegistration::getStatus, 1) // 只查询已通过的报名
+                .eq(CompetitionRegistration::getIsDelete, 0)
+                .orderByDesc(CompetitionRegistration::getUpdateTime);
+
+        List<CompetitionRegistration> registrationList = competitionRegistrationMapper.selectList(queryWrapper);
+
+        // 提取竞赛ID列表
+        if (registrationList == null || registrationList.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> competitionIds = registrationList.stream()
+                .map(CompetitionRegistration::getCompetitionId)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+        // 批量查询竞赛信息
+        LambdaQueryWrapper<Competition> competitionQueryWrapper = new LambdaQueryWrapper<>();
+        competitionQueryWrapper.in(Competition::getId, competitionIds)
+                .eq(Competition::getIsDelete, 0)
+                .orderByDesc(Competition::getCreateTime);
+
+        return this.list(competitionQueryWrapper);
+    }
+
 
 }
 
