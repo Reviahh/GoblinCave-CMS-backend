@@ -1,25 +1,17 @@
 package com.miji.cms.model.domain;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
-
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
 import java.io.Serializable;
 import java.util.Date;
-import lombok.Data;
 
 /**
- * 队友招募表
- * @TableName team_recruitment
+ * 队友招募实体
  */
-@TableName(value ="team_recruitment")
 @Data
+@TableName("team_recruitment")
 public class TeamRecruitment implements Serializable {
-    private static final long serialVersionUID = 3800693849790495659L;
-    /**
-     * 
-     */
+
     @TableId(type = IdType.AUTO)
     private Long id;
 
@@ -44,33 +36,59 @@ public class TeamRecruitment implements Serializable {
     private Integer isTeam;
 
     /**
-     * 
+     * 招募标题
      */
     private String title;
 
     /**
-     * 
+     * 详细说明（注意：前端可能使用 content）
      */
     private String description;
 
     /**
-     * 
+     * 招募人数
+     */
+    private Integer maxMembers;
+
+    /**
+     * 联系方式
      */
     private String contact;
 
     /**
-     * 
+     * 状态：0-招募中，1-已满员，2-已关闭
+     */
+    private Integer status;
+
+    /**
+     * 创建时间
      */
     private Date createTime;
 
     /**
-     * 
+     * 更新时间
      */
     private Date updateTime;
 
     /**
-     * 
+     * 是否删除
      */
     @TableLogic
     private Integer isDelete;
+
+    @TableField(exist = false)
+    private static final long serialVersionUID = 1L;
+
+    // ========== 为前端提供字段映射 ==========
+
+    /**
+     * 前端使用 content，后端使用 description
+     */
+    public String getContent() {
+        return this.description;
+    }
+
+    public void setContent(String content) {
+        this.description = content;
+    }
 }

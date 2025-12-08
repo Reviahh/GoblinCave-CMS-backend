@@ -25,7 +25,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/competition")
-@CrossOrigin(origins = {"http://localhost:5173/","http://localhost:3000/","https://miji-frontend.vercel.app/"},allowCredentials = "true")
+@CrossOrigin(origins = { "http://localhost:5173/", "http://localhost:3000/",
+        "https://miji-frontend.vercel.app/" }, allowCredentials = "true")
 @Slf4j
 public class CompetitionController {
 
@@ -36,11 +37,12 @@ public class CompetitionController {
      * 新增竞赛
      */
     @PostMapping("/add")
-    public BaseResponse<Long> addCompetition(@RequestBody CompetitionCreateRequest request, HttpServletRequest httpRequest) {
+    public BaseResponse<Long> addCompetition(@RequestBody CompetitionCreateRequest request,
+                                             HttpServletRequest httpRequest) {
         if (request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛信息不能为空");
         }
-        long result = competitionService.addCompetition(request,httpRequest);
+        long result = competitionService.addCompetition(request, httpRequest);
         return ResultUtils.success(result);
     }
 
@@ -62,7 +64,6 @@ public class CompetitionController {
 
     /**
      * 删除竞赛
-     * 修改说明：将 @RequestBody 改为 @RequestParam，以支持 ?id=xxx 传参
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteCompetition(@RequestParam Long id, HttpServletRequest request) {
@@ -83,15 +84,21 @@ public class CompetitionController {
     }
 
     /**
-     * 获取竞赛详情
-     * 修改说明：将 @RequestBody 改为 @RequestParam，因为 GET 请求不应带 Body
+     * 获取竞赛详情（添加空值检查）
      */
     @GetMapping("/detail")
     public BaseResponse<Competition> getCompetitionDetail(@RequestParam Long id) {
         if (id == null || id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛ID不合法");
         }
+
         Competition competition = competitionService.getCompetitionById(id);
+
+        // 添加空值检查
+        if (competition == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在或已被删除");
+        }
+
         return ResultUtils.success(competition);
     }
 
@@ -110,7 +117,6 @@ public class CompetitionController {
         boolean result = competitionService.registerCompetition(request, httpRequest);
         return ResultUtils.success(result);
     }
-
 
     /**
      * 审核报名
@@ -138,10 +144,9 @@ public class CompetitionController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的竞赛ID");
         }
 
-        List<CompetitionRegistration> registrations =
-                competitionService.listCompetitionRegistrations(competitionId, httpRequest);
+        List<CompetitionRegistration> registrations = competitionService.listCompetitionRegistrations(competitionId,
+                httpRequest);
 
         return ResultUtils.success(registrations);
     }
-
 }
