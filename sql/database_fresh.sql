@@ -194,23 +194,7 @@ CREATE TABLE `chat_message` (
     CONSTRAINT `fk_message_sender` FOREIGN KEY (`senderId`) REFERENCES `user`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='招募帖公开留言表';
 
--- ----------------------------
--- 9. 报名表 registration
--- ----------------------------
-DROP TABLE IF EXISTS `registration`;
-CREATE TABLE `registration` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '报名ID',
-    `userId` BIGINT NOT NULL COMMENT '用户ID',
-    `competitionId` BIGINT NOT NULL COMMENT '竞赛ID',
-    `teamId` BIGINT DEFAULT NULL COMMENT '队伍ID',
-    `status` INT DEFAULT 0 COMMENT '状态：0-待审核，1-已通过，2-已拒绝',
-    `createTime` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updateTime` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `isDelete` INT DEFAULT 0 COMMENT '是否删除',
-     INDEX `idx_user_competition` (`userId`, `competitionId`),
-     INDEX `idx_competitionId` (`competitionId`),
-     INDEX `idx_teamId` (`teamId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='竞赛报名表';
+
 -- ============================================================
 -- ============================================================
 -- 验证脚本

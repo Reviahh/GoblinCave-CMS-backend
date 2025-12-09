@@ -8,10 +8,8 @@ import com.miji.cms.constant.UserConstant;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.mapper.CompetitionRegistrationMapper;
 import com.miji.cms.mapper.TeamMapper;
-import com.miji.cms.model.domain.Competition;
-import com.miji.cms.model.domain.CompetitionRegistration;
-import com.miji.cms.model.domain.Team;
-import com.miji.cms.model.domain.User;
+import com.miji.cms.mapper.TeamMemberMapper;
+import com.miji.cms.model.domain.*;
 import com.miji.cms.model.request.CompetitionCreateRequest;
 import com.miji.cms.model.request.CompetitionRegisterRequest;
 import com.miji.cms.model.request.CompetitionReviewRequest;
@@ -49,7 +47,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
     private TeamMapper teamMapper;
 
     @Resource
-    private UserService userService;
+    private TeamMemberMapper teamMemberMapper;
 
     @Override
     public long addCompetition(CompetitionCreateRequest request, HttpServletRequest httpRequest) {
@@ -181,63 +179,90 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛不存在");
         }
 
-        // 判断是否为团队赛
         boolean isTeamCompetition = competition.getMaxMembers() > 1;
 
-        if (isTeamCompetition) {
-            // 团队赛必须有队伍ID
-            if (teamId == null) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "团队赛必须提供队伍ID");
+        /**
+         * ================================
+         *  若为个人赛 —— 自动创建一个队伍
+         * ================================
+         */
+        if (!isTeamCompetition) {
+            // 1. 查是否已有个人队伍（避免重复创建）
+            QueryWrapper<Team> qw = new QueryWrapper<>();
+            qw.eq("userId", loginUser.getId())
+                    .eq("isDelete", 0);
+
+            Team existTeam = teamMapper.selectOne(qw);
+
+            if (existTeam != null) {
+                teamId = existTeam.getId();
+            } else {
+                // 2. 创建新的个人队伍
+                Team newTeam = new Team();
+                newTeam.setName(loginUser.getUserName() + "的个人队伍");
+                newTeam.setUserId(loginUser.getId());
+                newTeam.setMaxNum(1);            // 个人赛队伍人数=1
+                newTeam.setDescription("个人参赛队伍");
+                newTeam.setIsDelete(0);
+                newTeam.setCreateTime(new Date());
+                newTeam.setUpdateTime(new Date());
+
+                teamMapper.insert(newTeam);
+                teamId = newTeam.getId();
+
+                // 插入队伍成员
+                TeamMember member = new TeamMember();
+                member.setTeamId(teamId);
+                member.setUserId(loginUser.getId());
+                member.setRole(1);  // 队长
+                member.setCreateTime(new Date());
+                member.setUpdateTime(new Date());
+                teamMemberMapper.insert(member);
             }
-
-            // 校验队伍是否存在
-            Team team = teamMapper.selectById(teamId);
-            if (team == null || team.getIsDelete() == 1) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
-            }
-
-            // 校验当前用户是否是队长
-            if (!team.getUserId().equals(loginUser.getId())) {
-                throw new BusinessException(ErrorCode.NO_AUTH, "只有队长可以代表队伍报名");
-            }
-
-            // 检查该队伍是否已报名此竞赛
-            QueryWrapper<CompetitionRegistration> query = new QueryWrapper<>();
-            query.eq("competitionId", competitionId)
-                    .eq("teamId", teamId);
-            if (competitionRegistrationMapper.selectCount(query) > 0) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "该队伍已报名此竞赛");
-            }
-
-            // 插入报名记录
-            CompetitionRegistration registration = new CompetitionRegistration();
-            registration.setCompetitionId(competitionId);
-            registration.setTeamId(teamId);
-            registration.setUserId(loginUser.getId()); // 队长ID
-            registration.setStatus(0); // 0-待审核
-            registration.setCreateTime(new Date());
-            registration.setUpdateTime(new Date());
-
-            return competitionRegistrationMapper.insert(registration) > 0;
-
-        } else {
-            // 个人赛逻辑
-            QueryWrapper<CompetitionRegistration> query = new QueryWrapper<>();
-            query.eq("competitionId", competitionId)
-                    .eq("userId", loginUser.getId());
-            if (competitionRegistrationMapper.selectCount(query) > 0) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "已报名该竞赛");
-            }
-
-            CompetitionRegistration registration = new CompetitionRegistration();
-            registration.setCompetitionId(competitionId);
-            registration.setUserId(loginUser.getId());
-            registration.setStatus(0); // 待审核
-            registration.setCreateTime(new Date());
-            registration.setUpdateTime(new Date());
-
-            return competitionRegistrationMapper.insert(registration) > 0;
         }
+
+        /**
+         * ======================================
+         * 不论个人赛、团队赛 —— 统一校验队伍合法性
+         * ======================================
+         */
+        Team team = teamMapper.selectById(teamId);
+        if (team == null || team.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
+        }
+
+        // 校验是否为队长
+        if (!team.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "只有队长可以代表队伍报名");
+        }
+
+        /**
+         * =======================================
+         * 检查是否已报名
+         * =======================================
+         */
+        QueryWrapper<CompetitionRegistration> existQuery = new QueryWrapper<>();
+        existQuery.eq("competitionId", competitionId)
+                .eq("teamId", teamId);
+
+        if (competitionRegistrationMapper.selectCount(existQuery) > 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该队伍已报名此竞赛");
+        }
+
+        /**
+         * =======================================
+         *  插入报名记录（统一风格）
+         * =======================================
+         */
+        CompetitionRegistration registration = new CompetitionRegistration();
+        registration.setCompetitionId(competitionId);
+        registration.setTeamId(teamId);
+        registration.setUserId(loginUser.getId());
+        registration.setStatus(0); // 待审核
+        registration.setCreateTime(new Date());
+        registration.setUpdateTime(new Date());
+
+        return competitionRegistrationMapper.insert(registration) > 0;
     }
 
 
