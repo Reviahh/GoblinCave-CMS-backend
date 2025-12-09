@@ -18,8 +18,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.stream.Collectors;
-
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +28,7 @@ import java.net.URLEncoder;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapper, Submission>
@@ -45,7 +44,7 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
     private CompetitionService competitionService;
 
     @Resource
-    private CompetitionRegistrationMapper registrationMapper;
+    private CompetitionRegistrationMapper competitionRegistrationMapper;
 
     @Resource
     private TeamMapper teamMapper;
@@ -69,7 +68,7 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         }
 
         // 2. 获取报名记录
-        CompetitionRegistration reg = registrationMapper.selectById(request.getRegistrationId());
+        CompetitionRegistration reg = competitionRegistrationMapper.selectById(request.getRegistrationId());
         if (reg == null || reg.getStatus() != 1) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "报名记录不存在或未通过审核");
         }
@@ -93,7 +92,7 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败: " + e.getMessage());
         }
-        String fileUrl = "/uploads/submissions/" + fileName; // 返回前端访问路径
+        String fileUrl = "/uploads/submissions/" + fileName;
 
         // 5. 检查是否已有提交（覆盖旧稿）
         Submission old = lambdaQuery()
@@ -109,7 +108,7 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         submission.setFileUrl(fileUrl);
         submission.setUserId(reg.getUserId());
         submission.setTeamId(reg.getTeamId());
-        submission.setStatus(0); // 待评审
+        submission.setStatus(0);
         submission.setCreateTime(old == null ? new Date() : submission.getCreateTime());
         submission.setUpdateTime(new Date());
 
@@ -117,25 +116,21 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         return submission.getId();
     }
 
-    /**
-     * 查询提交详情
-     */
     @Override
-    public Submission getSubmissionDetail(Long submissionId, HttpServletRequest request) {
+    public Submission getSubmissionDetail(Long submissionId, HttpServletRequest httpRequest) {
         Submission submission = getById(submissionId);
         if (submission == null || submission.getIsDelete() == 1) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "提交记录不存在");
         }
         return submission;
     }
-    /**
-     * 查询提交列表
-     */
+
     @Override
     public List<Submission> listSubmissions(SubmissionQueryRequest request, HttpServletRequest httpRequest) {
-
         User loginUser = (User) httpRequest.getSession().getAttribute("userLoginState");
-        if (loginUser == null) throw new BusinessException(ErrorCode.NOT_LOGIN);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
 
         QueryWrapper<Submission> wrapper = new QueryWrapper<>();
         wrapper.eq("isDelete", 0);
@@ -144,23 +139,18 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         }
 
         if (loginUser.getUserRole() == 0) {
-            // 普通用户只能看自己的提交
             wrapper.eq("userId", loginUser.getId());
         }
 
         return list(wrapper);
     }
 
-
-
-
-    /**
-     * 管理员评分
-     */
     @Override
     public Boolean scoreSubmission(Long submissionId, Integer score, HttpServletRequest httpRequest) {
         User loginUser = (User) httpRequest.getSession().getAttribute("userLoginState");
-        if (loginUser == null) throw new BusinessException(ErrorCode.NOT_LOGIN);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
 
         Submission submission = getById(submissionId);
         if (submission == null || submission.getIsDelete() == 1) {
@@ -174,17 +164,13 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
 
         submission.setScore(score);
         submission.setReviewerId(loginUser.getId());
-        submission.setStatus(1); // 已评分
+        submission.setStatus(1);
         submission.setUpdateTime(new Date());
         return updateById(submission);
     }
 
-    /**
-     * 竞赛成绩榜单（按分数降序）
-     */
     @Override
     public List<SubmissionRankVO> getCompetitionRank(Long competitionId) {
-
         List<Submission> list = this.lambdaQuery()
                 .eq(Submission::getCompetitionId, competitionId)
                 .isNotNull(Submission::getScore)
@@ -192,28 +178,18 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
                 .list();
 
         return list.stream().map(this::convertToRankVO).collect(Collectors.toList());
-
     }
 
-
-    /**
-     * 导出 Excel 成绩表
-     */
     @Override
     public void exportCompetitionScore(Long competitionId, HttpServletResponse response) {
-
         List<SubmissionRankVO> data = getCompetitionRank(competitionId);
 
-        // 设置 Excel 下载头
         try {
             response.setContentType("application/vnd.ms-excel");
             response.setCharacterEncoding("utf-8");
             String fileName = URLEncoder.encode("竞赛成绩表-" + competitionId, "UTF-8");
+            response.setHeader("Content-Disposition", "attachment;filename=" + fileName + ".xlsx");
 
-            response.setHeader("Content-Disposition",
-                    "attachment;filename=" + fileName + ".xlsx");
-
-            // 使用 EasyExcel 导出
             EasyExcel.write(response.getOutputStream(), SubmissionRankVO.class)
                     .sheet("成绩榜")
                     .doWrite(data);
@@ -223,10 +199,6 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         }
     }
 
-
-    /**
-     * 查询个人或队伍的成绩详情
-     */
     @Override
     public SubmissionRankVO getScoreDetail(Long submissionId) {
         Submission submission = this.getById(submissionId);
@@ -236,28 +208,24 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         return convertToRankVO(submission);
     }
 
-
-    /**
-     * VO 转换工具（补充队伍名、用户名）
-     */
     private SubmissionRankVO convertToRankVO(Submission submission) {
         SubmissionRankVO vo = new SubmissionRankVO();
-
         BeanUtils.copyProperties(submission, vo);
 
-        // 查询用户昵称
         if (submission.getUserId() != null) {
             User user = userService.getById(submission.getUserId());
-            if (user != null) vo.setSubmitUserName(user.getUserName());
+            if (user != null) {
+                vo.setSubmitUserName(user.getUserName());
+            }
         }
 
-        // 查询队伍名称
         if (submission.getTeamId() != null) {
             Team team = teamService.getById(submission.getTeamId());
-            if (team != null) vo.setTeamName(team.getName());
+            if (team != null) {
+                vo.setTeamName(team.getName());
+            }
         }
 
         return vo;
     }
 }
-
