@@ -23,9 +23,12 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -190,6 +193,7 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             // 1. 查是否已有个人队伍（避免重复创建）
             QueryWrapper<Team> qw = new QueryWrapper<>();
             qw.eq("userId", loginUser.getId())
+                    .eq("competitionId", competitionId)
                     .eq("isDelete", 0);
 
             Team existTeam = teamMapper.selectOne(qw);
@@ -323,10 +327,10 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
             throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在");
         }
 
-        // 权限验证：仅创建者可查看报名列表
-        if (!competition.getCreatorId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH, "只有竞赛创建者可查看报名列表");
-        }
+//        // 权限验证：仅创建者可查看报名列表
+//        if (!competition.getCreatorId().equals(loginUser.getId())) {
+//            throw new BusinessException(ErrorCode.NO_AUTH, "只有竞赛创建者可查看报名列表");
+//        }
 
         // 查询报名信息
         LambdaQueryWrapper<CompetitionRegistration> queryWrapper = new LambdaQueryWrapper<>();
@@ -339,36 +343,73 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
 
     @Override
     public List<Competition> listMyCompetitions(HttpServletRequest httpRequest) {
+
         User loginUser = (User) httpRequest.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
         }
+        Long userId = loginUser.getId();
 
-        // 查询用户已通过审核的报名记录
-        LambdaQueryWrapper<CompetitionRegistration> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(CompetitionRegistration::getUserId, loginUser.getId())
-                .eq(CompetitionRegistration::getStatus, 1) // 只查询已通过的报名
-                .orderByDesc(CompetitionRegistration::getUpdateTime);
+        /**
+         * 一、查询我个人提交报名的竞赛
+         */
+        LambdaQueryWrapper<CompetitionRegistration> personalQuery = new LambdaQueryWrapper<>();
+        personalQuery.eq(CompetitionRegistration::getUserId, userId)
+                .eq(CompetitionRegistration::getStatus, 1);
 
-        List<CompetitionRegistration> registrationList = competitionRegistrationMapper.selectList(queryWrapper);
+        List<CompetitionRegistration> personalList =
+                competitionRegistrationMapper.selectList(personalQuery);
 
-        // 提取竞赛ID列表
-        if (registrationList == null || registrationList.isEmpty()) {
+        /**
+         * 二、查询我所在队伍的 teamId
+         */
+        LambdaQueryWrapper<TeamMember> teamMemberQuery = new LambdaQueryWrapper<>();
+        teamMemberQuery.eq(TeamMember::getUserId, userId);
+
+        List<TeamMember> teamMembers = teamMemberMapper.selectList(teamMemberQuery);
+        List<Long> myTeamIds = teamMembers.stream()
+                .map(TeamMember::getTeamId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        /**
+         * 三、查询我所在队伍提交的报名记录
+         */
+        List<CompetitionRegistration> teamRegistrationList = new ArrayList<>();
+
+        if (!myTeamIds.isEmpty()) {
+            LambdaQueryWrapper<CompetitionRegistration> teamQuery = new LambdaQueryWrapper<>();
+            teamQuery.in(CompetitionRegistration::getTeamId, myTeamIds)
+                    .eq(CompetitionRegistration::getStatus, 1);
+
+            teamRegistrationList = competitionRegistrationMapper.selectList(teamQuery);
+        }
+
+        /**
+         * 四、整合两种报名记录
+         */
+        List<Long> competitionIds = Stream.concat(
+                        personalList.stream(),
+                        teamRegistrationList.stream()
+                )
+                .map(CompetitionRegistration::getCompetitionId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (competitionIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<Long> competitionIds = registrationList.stream()
-                .map(CompetitionRegistration::getCompetitionId)
-                .distinct()
-                .collect(java.util.stream.Collectors.toList());
-
-        // 批量查询竞赛信息 (isDelete is handled by @TableLogic)
-        LambdaQueryWrapper<Competition> competitionQueryWrapper = new LambdaQueryWrapper<>();
-        competitionQueryWrapper.in(Competition::getId, competitionIds)
+        /**
+         * 五、批量查询竞赛信息（逻辑删除自动过滤）
+         */
+        LambdaQueryWrapper<Competition> competitionQuery = new LambdaQueryWrapper<>();
+        competitionQuery.in(Competition::getId, competitionIds)
                 .orderByDesc(Competition::getCreateTime);
 
-        return this.list(competitionQueryWrapper);
+        return this.list(competitionQuery);
     }
+
 
 
 }

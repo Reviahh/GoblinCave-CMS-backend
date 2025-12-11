@@ -10,6 +10,7 @@ import java.util.Date;
 @Data
 public class TeamUpdateRequest implements Serializable {
 
+    private static final long serialVersionUID = -7815423391708052862L;
     /**
      * 队伍ID
      */
@@ -40,5 +41,4 @@ public class TeamUpdateRequest implements Serializable {
      */
     private Date expireTime;
 
-    private static final long serialVersionUID = 1L;
 }

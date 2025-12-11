@@ -11,7 +11,7 @@ import java.util.Date;
 @Data
 public class TeamCreateRequest implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2497849251397240849L;
 
     private Long competitionId;     // 所属竞赛ID
     private String name;            // 队伍名称

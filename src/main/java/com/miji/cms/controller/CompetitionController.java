@@ -151,7 +151,7 @@ public class CompetitionController {
     }
 
     /**
-     * 获取当前用户已报名的竞赛列表（仅返回已通过审核的）
+     * 获取当前用户已报名的竞赛列表
      */
     @GetMapping("/my")
     public BaseResponse<List<Competition>> listMyCompetitions(HttpServletRequest httpRequest) {

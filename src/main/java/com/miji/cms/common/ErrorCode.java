@@ -27,12 +27,12 @@ public enum ErrorCode {
     /**
      * 状态码描述
      */
-    private final String descrption;
+    private final String description;
 
-    ErrorCode(int code, String message, String descrption) {
+    ErrorCode(int code, String message, String description) {
         this.code = code;
         this.message = message;
-        this.descrption = descrption;
+        this.description = description;
     }
 
     public int getCode() {
@@ -43,7 +43,7 @@ public enum ErrorCode {
         return message;
     }
 
-    public String getDescrption() {
-        return descrption;
+    public String getDescription() {
+        return description;
     }
 }

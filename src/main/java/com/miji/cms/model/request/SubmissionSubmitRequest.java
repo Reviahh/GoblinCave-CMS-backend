@@ -26,5 +26,5 @@ public class SubmissionSubmitRequest implements Serializable {
     private String description;
 
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = -6832795906753266308L;
 }

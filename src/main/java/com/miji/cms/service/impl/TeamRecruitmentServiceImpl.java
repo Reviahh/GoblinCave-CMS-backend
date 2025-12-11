@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.miji.cms.common.ErrorCode;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.mapper.TeamMapper;
+import com.miji.cms.model.domain.Competition;
 import com.miji.cms.model.domain.Team;
 import com.miji.cms.model.domain.TeamRecruitment;
 import com.miji.cms.model.domain.User;
@@ -47,22 +48,31 @@ public class TeamRecruitmentServiceImpl extends ServiceImpl<TeamRecruitmentMappe
         if (req == null || req.getCompetitionId() == null || req.getTitle() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数缺失");
         }
-        User loginUser = (User) request.getSession().getAttribute("userLoginState");
-        if (loginUser == null) throw new BusinessException(ErrorCode.NOT_LOGIN);
+
+        // 使用统一的获取登录用户方法
+        User loginUser = userService.getLoginUser(request);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
 
         // 若是代表队伍发布，校验队伍与当前用户关系
         if (req.getIsTeam() != null && req.getIsTeam() == 1) {
-            if (req.getTeamId() == null) throw new BusinessException(ErrorCode.PARAMS_ERROR, "teamId 不能为空");
+            if (req.getTeamId() == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "teamId 不能为空");
+            }
             Team team = teamMapper.selectById(req.getTeamId());
-            if (team == null || team.getIsDelete() == 1) throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
-            // 校验当前用户为队长或成员（这里要求队长发布）
+            if (team == null || team.getIsDelete() == 1) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在");
+            }
+            // 校验当前用户为队长
             if (!team.getUserId().equals(loginUser.getId())) {
                 throw new BusinessException(ErrorCode.NO_AUTH, "只有队长可以代表队伍发布");
             }
         }
 
         // 校验竞赛存在
-        if (competitionService.getById(req.getCompetitionId()) == null) {
+        Competition competition = competitionService.getById(req.getCompetitionId());
+        if (competition == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "竞赛不存在");
         }
 
@@ -74,11 +84,19 @@ public class TeamRecruitmentServiceImpl extends ServiceImpl<TeamRecruitmentMappe
         r.setTitle(req.getTitle());
         r.setDescription(req.getDescription());
         r.setContact(req.getContact());
+
+        // 添加：设置招募人数
+        r.setMaxMembers(req.getMaxMembers());
+
         r.setCreateTime(new Date());
         r.setUpdateTime(new Date());
         r.setIsDelete(0);
 
-        recruitmentMapper.insert(r);
+        int result = recruitmentMapper.insert(r);
+        if (result <= 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "发布招募令失败");
+        }
+
         return r.getId();
     }
 

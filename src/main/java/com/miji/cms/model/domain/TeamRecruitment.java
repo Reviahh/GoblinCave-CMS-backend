@@ -26,7 +26,7 @@ public class TeamRecruitment implements Serializable {
     private Long competitionId;
 
     /**
-     * 相关队伍ID（可为空，表示个人）
+     * 相关队伍ID
      */
     private Long teamId;
 
@@ -77,7 +77,7 @@ public class TeamRecruitment implements Serializable {
     private Integer isDelete;
 
     @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 9116501053418932400L;
 
     // ========== 为前端提供字段映射 ==========
 

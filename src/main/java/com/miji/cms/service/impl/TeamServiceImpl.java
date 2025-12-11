@@ -64,11 +64,6 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在");
         }
 
-        // 校验竞赛是否允许创建队伍
-        if (competition.getMaxMembers() == 1) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该竞赛为个人赛，不允许创建队伍");
-        }
-
         // 校验参数
         if (StringUtils.isAnyBlank(request.getName())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍名称不能为空");
