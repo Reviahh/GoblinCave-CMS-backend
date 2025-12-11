@@ -62,7 +62,7 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         }
 
         // 1. 获取登录用户
-        User loginUser = (User) httpRequest.getSession().getAttribute("userLoginState");
+        User loginUser = userService.getLoginUser(httpRequest);
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN);
         }
@@ -109,10 +109,22 @@ public class SubmissionServiceImpl extends ServiceImpl<CompetitionSubmissionMapp
         submission.setUserId(reg.getUserId());
         submission.setTeamId(reg.getTeamId());
         submission.setStatus(0);
-        submission.setCreateTime(old == null ? new Date() : submission.getCreateTime());
-        submission.setUpdateTime(new Date());
+        if (old == null) {
+            submission.setCreateTime(new Date());
+        } else {
+            submission.setCreateTime(old.getCreateTime());
+        }
 
-        saveOrUpdate(submission);
+        submission.setUpdateTime(new Date());
+        System.out.println("Submission 即将写入数据库：" + submission);
+
+        if (old == null) {
+            this.save(submission);
+        } else {
+            submission.setId(old.getId());
+            this.updateById(submission);
+        }
+
         return submission.getId();
     }
 

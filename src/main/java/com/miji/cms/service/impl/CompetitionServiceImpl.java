@@ -410,6 +410,38 @@ public class CompetitionServiceImpl extends ServiceImpl<CompetitionMapper, Compe
         return this.list(competitionQuery);
     }
 
+    @Override
+    public CompetitionRegistration getRegistrationByUserAndCompetition(Long competitionId, Long userId, HttpServletRequest httpRequest) {
+        // 校验登录状态
+        User loginUser = (User) httpRequest.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+
+        // 校验竞赛存在
+        Competition competition = this.getById(competitionId);
+        if (competition == null || competition.getIsDelete() == 1) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "竞赛不存在");
+        }
+
+        // 如果你希望用户只能查自己的报名信息
+        // 可以启用这个校验（是否需要你自行决定）
+        // if (!loginUser.getId().equals(userId)) {
+        //     throw new BusinessException(ErrorCode.NO_AUTH, "不能查看其他用户的报名信息");
+        // }
+
+        // 查询报名记录
+        LambdaQueryWrapper<CompetitionRegistration> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CompetitionRegistration::getUserId, userId)
+                .eq(CompetitionRegistration::getCompetitionId, competitionId)
+                .last("LIMIT 1");
+
+        CompetitionRegistration record = competitionRegistrationMapper.selectOne(wrapper);
+
+        // record 可能为 null，直接返回 null（前端可根据 null 判断未报名）
+        return record;
+    }
+
 
 
 }

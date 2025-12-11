@@ -31,7 +31,7 @@ public class FileController {
     }
 
     /**
-     * 音频上传
+     * 图片上传
      * @param file
      * @return
      */

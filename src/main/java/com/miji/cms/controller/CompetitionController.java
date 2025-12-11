@@ -3,14 +3,18 @@ package com.miji.cms.controller;
 import com.miji.cms.common.BaseResponse;
 import com.miji.cms.common.ErrorCode;
 import com.miji.cms.common.ResultUtils;
+import com.miji.cms.constant.UserConstant;
 import com.miji.cms.exception.BusinessException;
 import com.miji.cms.model.domain.Competition;
 import com.miji.cms.model.domain.CompetitionRegistration;
+import com.miji.cms.model.domain.TeamRecruitment;
+import com.miji.cms.model.domain.User;
 import com.miji.cms.model.request.CompetitionCreateRequest;
 import com.miji.cms.model.request.CompetitionRegisterRequest;
 import com.miji.cms.model.request.CompetitionReviewRequest;
 import com.miji.cms.model.request.CompetitionUpdateRequest;
 import com.miji.cms.service.CompetitionService;
+import com.miji.cms.service.TeamRecruitmentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +36,7 @@ public class CompetitionController {
 
     @Resource
     private CompetitionService competitionService;
+
 
     /**
      * 新增竞赛
@@ -133,7 +138,7 @@ public class CompetitionController {
     }
 
     /**
-     * 获取竞赛报名列表（仅创建者可见）
+     * 获取竞赛报名列表
      */
     @GetMapping("/registration/list")
     public BaseResponse<List<CompetitionRegistration>> listCompetitionRegistrations(
@@ -158,4 +163,25 @@ public class CompetitionController {
         List<Competition> myCompetitions = competitionService.listMyCompetitions(httpRequest);
         return ResultUtils.success(myCompetitions);
     }
+
+    /**
+     * 根据用户 ID 和竞赛 ID 查询报名记录
+     */
+    @GetMapping("/registration/getMy")
+    public BaseResponse<CompetitionRegistration> getMyRegistration(
+            @RequestParam Long competitionId,
+            HttpServletRequest request) {
+
+        User loginUser = (User) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+
+        CompetitionRegistration record =
+                competitionService.getRegistrationByUserAndCompetition(competitionId, loginUser.getId(), request);
+
+        return ResultUtils.success(record);
+    }
+
+
 }

@@ -3,6 +3,7 @@ package com.miji.cms.service;
 import com.miji.cms.model.domain.Competition;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.miji.cms.model.domain.CompetitionRegistration;
+import com.miji.cms.model.domain.TeamRecruitment;
 import com.miji.cms.model.request.CompetitionCreateRequest;
 import com.miji.cms.model.request.CompetitionRegisterRequest;
 import com.miji.cms.model.request.CompetitionReviewRequest;
@@ -91,5 +92,8 @@ public interface CompetitionService extends IService<Competition> {
      * @return 用户已报名的竞赛列表
      */
     List<Competition> listMyCompetitions(HttpServletRequest httpRequest);
+
+
+    CompetitionRegistration getRegistrationByUserAndCompetition(Long competitionId, Long userId, HttpServletRequest request);
 
 }
