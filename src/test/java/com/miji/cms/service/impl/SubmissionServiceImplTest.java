@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -25,8 +26,11 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -64,6 +68,12 @@ class SubmissionServiceImplTest {
     @Spy
     @InjectMocks
     private SubmissionServiceImpl submissionService;
+
+    @Mock
+    private HttpServletResponse response;
+
+    @Mock
+    private ServletOutputStream outputStream;
 
     private User loginUser;
     private Competition competition;
@@ -244,10 +254,7 @@ class SubmissionServiceImplTest {
         assertEquals(ErrorCode.NO_AUTH.getCode(), exception.getCode());
     }
 
-    // ==================== getCompetitionRank 测试 ====================
-    // 注意: getCompetitionRank 使用了 lambdaQuery 链式调用，难以完全模拟
-    // 建议使用集成测试来测试此方法，这里仅验证方法调用不会抛出异常
-
+    
     // ==================== getScoreDetail 测试 ====================
 
     @Test
