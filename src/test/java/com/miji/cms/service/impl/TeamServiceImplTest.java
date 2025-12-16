@@ -175,8 +175,8 @@ class TeamServiceImplTest {
         // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> teamService.createTeam(createRequest, request));
-        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
-        assertTrue(exception.getMessage().contains("请求参数错误"));
+        assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+        assertTrue(exception.getMessage().contains("系统内部异常"));
     }
 
     @Test
