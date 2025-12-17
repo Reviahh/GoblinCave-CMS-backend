@@ -555,4 +555,180 @@ class TeamRecruitmentServiceImplTest {
         r.setDescription("另一个描述");
         assertEquals("另一个描述", r.getContent());
     }
+
+    // ==================== 创建招募令边界测试 ====================
+    @Test
+    void testCreateRecruitment_NullDescription() {
+        createRequest.setDescription(null);
+        
+        when(userService.getLoginUser(any())).thenReturn(loginUser);
+        when(competitionService.getById(100L)).thenReturn(competition);
+        when(recruitmentMapper.insert(any(TeamRecruitment.class))).thenAnswer(invocation -> {
+            TeamRecruitment r = invocation.getArgument(0);
+            r.setId(1L);
+            return 1;
+        });
+
+        Long recruitmentId = recruitmentService.createRecruitment(createRequest, httpRequest);
+
+        assertNotNull(recruitmentId);
+    }
+
+    @Test
+    void testCreateRecruitment_NullContact() {
+        createRequest.setContact(null);
+        
+        when(userService.getLoginUser(any())).thenReturn(loginUser);
+        when(competitionService.getById(100L)).thenReturn(competition);
+        when(recruitmentMapper.insert(any(TeamRecruitment.class))).thenAnswer(invocation -> {
+            TeamRecruitment r = invocation.getArgument(0);
+            r.setId(1L);
+            return 1;
+        });
+
+        Long recruitmentId = recruitmentService.createRecruitment(createRequest, httpRequest);
+
+        assertNotNull(recruitmentId);
+    }
+
+    @Test
+    void testCreateRecruitment_NullIsTeam() {
+        createRequest.setIsTeam(null);
+        
+        when(userService.getLoginUser(any())).thenReturn(loginUser);
+        when(competitionService.getById(100L)).thenReturn(competition);
+        when(recruitmentMapper.insert(any(TeamRecruitment.class))).thenAnswer(invocation -> {
+            TeamRecruitment r = invocation.getArgument(0);
+            r.setId(1L);
+            return 1;
+        });
+
+        Long recruitmentId = recruitmentService.createRecruitment(createRequest, httpRequest);
+
+        assertNotNull(recruitmentId);
+    }
+
+    @Test
+    void testCreateRecruitment_InsertFailed() {
+        when(userService.getLoginUser(any())).thenReturn(loginUser);
+        when(competitionService.getById(100L)).thenReturn(competition);
+        when(recruitmentMapper.insert(any(TeamRecruitment.class))).thenReturn(0);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> recruitmentService.createRecruitment(createRequest, httpRequest));
+        assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+    }
+
+    // ==================== 更新招募令边界测试 ====================
+    @Test
+    void testUpdateRecruitment_UpdateFailed() {
+        TeamRecruitment updateRequest = new TeamRecruitment();
+        updateRequest.setId(1L);
+        updateRequest.setTitle("更新后的标题");
+
+        when(recruitmentMapper.selectById(1L)).thenReturn(recruitment);
+        when(recruitmentMapper.updateById(any(TeamRecruitment.class))).thenReturn(0);
+
+        boolean result = recruitmentService.updateRecruitment(updateRequest, httpRequest);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void testUpdateRecruitment_PartialUpdate() {
+        TeamRecruitment updateRequest = new TeamRecruitment();
+        updateRequest.setId(1L);
+        updateRequest.setTitle("新标题");
+        // description和contact为null
+
+        when(recruitmentMapper.selectById(1L)).thenReturn(recruitment);
+        when(recruitmentMapper.updateById(any(TeamRecruitment.class))).thenReturn(1);
+
+        boolean result = recruitmentService.updateRecruitment(updateRequest, httpRequest);
+
+        assertTrue(result);
+    }
+
+    // ==================== 删除招募令边界测试 ====================
+    @Test
+    void testDeleteRecruitment_DeletedRecruitment() {
+        recruitment.setIsDelete(1);
+        when(recruitmentMapper.selectById(1L)).thenReturn(recruitment);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> recruitmentService.deleteRecruitment(1L, httpRequest));
+        assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+    }
+
+    @Test
+    void testDeleteRecruitment_RemoveFailed() {
+        when(recruitmentMapper.selectById(1L)).thenReturn(recruitment);
+        doReturn(false).when(recruitmentService).removeById(1L);
+
+        boolean result = recruitmentService.deleteRecruitment(1L, httpRequest);
+
+        assertFalse(result);
+    }
+
+    // ==================== 查询招募令列表边界测试 ====================
+    @Test
+    void testListRecruitments_NullQueryRequest() {
+        RecruitmentQueryRequest queryRequest = new RecruitmentQueryRequest();
+        // 所有条件为null
+
+        when(recruitmentMapper.selectList(any())).thenReturn(Arrays.asList(recruitment));
+
+        List<TeamRecruitment> result = recruitmentService.listRecruitments(queryRequest, httpRequest);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void testListRecruitments_EmptyResult() {
+        RecruitmentQueryRequest queryRequest = new RecruitmentQueryRequest();
+        queryRequest.setCompetitionId(999L);
+
+        when(recruitmentMapper.selectList(any())).thenReturn(Arrays.asList());
+
+        List<TeamRecruitment> result = recruitmentService.listRecruitments(queryRequest, httpRequest);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ==================== 招募令实体测试 ====================
+    @Test
+    void testTeamRecruitment_AllFields() {
+        TeamRecruitment r = new TeamRecruitment();
+        Date now = new Date();
+        
+        r.setId(1L);
+        r.setUserId(10L);
+        r.setCompetitionId(100L);
+        r.setTeamId(5L);
+        r.setIsTeam(1);
+        r.setTitle("测试标题");
+        r.setDescription("测试描述");
+        r.setContact("QQ:123456");
+        r.setMaxMembers(3);
+        r.setStatus(0);
+        r.setCreateTime(now);
+        r.setUpdateTime(now);
+        r.setIsDelete(0);
+
+        assertEquals(1L, r.getId());
+        assertEquals(10L, r.getUserId());
+        assertEquals(100L, r.getCompetitionId());
+        assertEquals(5L, r.getTeamId());
+        assertEquals(1, r.getIsTeam());
+        assertEquals("测试标题", r.getTitle());
+        assertEquals("测试描述", r.getDescription());
+        assertEquals("QQ:123456", r.getContact());
+        assertEquals(3, r.getMaxMembers());
+        assertEquals(0, r.getStatus());
+        assertEquals(now, r.getCreateTime());
+        assertEquals(now, r.getUpdateTime());
+        assertEquals(0, r.getIsDelete());
+    }
 }

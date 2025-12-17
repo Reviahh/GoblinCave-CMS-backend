@@ -266,5 +266,250 @@ class UserServiceImplTest {
             int res = userService.updateUser(user, admin);
             assertEquals(1, res);
         }
+
+        @Test
+        void testUpdateUserBySelf() {
+            User user = new User();
+            user.setId(10L);
+
+            User loginUser = new User();
+            loginUser.setId(10L);
+            loginUser.setUserRole(0);
+
+            when(userMapper.selectById(10L)).thenReturn(new User());
+            when(userMapper.updateById(user)).thenReturn(1);
+
+            int res = userService.updateUser(user, loginUser);
+            assertEquals(1, res);
+        }
+
+        @Test
+        void testUpdateUserNoAuth() {
+            User user = new User();
+            user.setId(10L);
+
+            User otherUser = new User();
+            otherUser.setId(20L);
+            otherUser.setUserRole(0);
+
+            assertThrows(BusinessException.class, () ->
+                    userService.updateUser(user, otherUser));
+        }
+
+        @Test
+        void testUpdateUserNotExist() {
+            User user = new User();
+            user.setId(999L);
+
+            User admin = new User();
+            admin.setUserRole(ADMIN_ROLE);
+
+            when(userMapper.selectById(999L)).thenReturn(null);
+
+            assertThrows(BusinessException.class, () ->
+                    userService.updateUser(user, admin));
+        }
+
+        @Test
+        void testUpdateUserInvalidId() {
+            User user = new User();
+            user.setId(0L);
+
+            User admin = new User();
+            admin.setUserRole(ADMIN_ROLE);
+
+            assertThrows(BusinessException.class, () ->
+                    userService.updateUser(user, admin));
+        }
+
+        @Test
+        void testIsAdminWithNonAdmin() {
+            User normalUser = new User();
+            normalUser.setUserRole(0);
+
+            when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(normalUser);
+            assertFalse(userService.isAdmin(request));
+        }
+
+        @Test
+        void testIsAdminWithNullUser() {
+            when(session.getAttribute(USER_LOGIN_STATE)).thenReturn(null);
+            assertFalse(userService.isAdmin(request));
+        }
+
+        @Test
+        void testIsAdminByUser() {
+            User admin = new User();
+            admin.setUserRole(ADMIN_ROLE);
+            assertTrue(userService.isAdmin(admin));
+
+            User normalUser = new User();
+            normalUser.setUserRole(0);
+            assertFalse(userService.isAdmin(normalUser));
+
+            assertFalse(userService.isAdmin((User) null));
+        }
+
+        @Test
+        void testGetSafetyUserWithNull() {
+            User result = userService.getSafetyUser(null);
+            assertNull(result);
+        }
+
+        @Test
+        void testGetLoginUserWithNullRequest() {
+            User result = userService.getLoginUser(null);
+            assertNull(result);
+        }
+    }
+
+    // =========================================================
+    // userRegister 边界测试
+    // =========================================================
+    @Nested
+    @DisplayName("userRegister 边界测试")
+    class UserRegisterEdgeCaseTest {
+
+        @Test
+        void testUserRegisterEmptyPassword() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userRegister("testuser", "", "", 1));
+        }
+
+        @Test
+        void testUserRegisterEmptyAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userRegister("", "pass1234", "pass1234", 1));
+        }
+
+        @Test
+        void testUserRegisterWithSpaceInAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userRegister("test user", "pass1234", "pass1234", 1));
+        }
+
+        @Test
+        void testUserRegisterWithSymbolsInAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userRegister("test!user", "pass1234", "pass1234", 1));
+        }
+
+        @Test
+        void testUserRegisterWithDotInAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userRegister("test.user", "pass1234", "pass1234", 1));
+        }
+    }
+
+    // =========================================================
+    // userLogin 边界测试
+    // =========================================================
+    @Nested
+    @DisplayName("userLogin 边界测试")
+    class UserLoginEdgeCaseTest {
+
+        @Test
+        void testUserLoginEmptyAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userLogin("", "12345678", 1, request));
+        }
+
+        @Test
+        void testUserLoginEmptyPassword() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userLogin("testuser", "", 1, request));
+        }
+
+        @Test
+        void testUserLoginNullAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userLogin(null, "12345678", 1, request));
+        }
+
+        @Test
+        void testUserLoginNullPassword() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userLogin("testuser", null, 1, request));
+        }
+
+        @Test
+        void testUserLoginWithSpaceInAccount() {
+            assertThrows(BusinessException.class, () ->
+                    userService.userLogin("test user", "12345678", 1, request));
+        }
+    }
+
+    // =========================================================
+    // User 实体测试
+    // =========================================================
+    @Nested
+    @DisplayName("User 实体测试")
+    class UserEntityTest {
+
+        @Test
+        void testUserAllFields() {
+            User user = new User();
+            Date now = new Date();
+
+            user.setId(1L);
+            user.setUserName("测试用户");
+            user.setUserAccount("testuser");
+            user.setUserPassword("password123");
+            user.setUserUrl("http://avatar.com/user.png");
+            user.setGender(1);
+            user.setPhone("13800138000");
+            user.setEmail("test@example.com");
+            user.setTags("tag1,tag2");
+            user.setUserRole(1);
+            user.setCreateTime(now);
+            user.setUpdateTime(now);
+            user.setIsDelete(0);
+
+            assertEquals(1L, user.getId());
+            assertEquals("测试用户", user.getUserName());
+            assertEquals("testuser", user.getUserAccount());
+            assertEquals("password123", user.getUserPassword());
+            assertEquals("http://avatar.com/user.png", user.getUserUrl());
+            assertEquals(1, user.getGender());
+            assertEquals("13800138000", user.getPhone());
+            assertEquals("test@example.com", user.getEmail());
+            assertEquals("tag1,tag2", user.getTags());
+            assertEquals(1, user.getUserRole());
+            assertEquals(now, user.getCreateTime());
+            assertEquals(now, user.getUpdateTime());
+            assertEquals(0, user.getIsDelete());
+        }
+
+        @Test
+        void testGetSafetyUserAllFields() {
+            User origin = new User();
+            Date now = new Date();
+            origin.setId(1L);
+            origin.setUserName("测试用户");
+            origin.setUserAccount("testaccount");
+            origin.setUserPassword("secret");
+            origin.setUserUrl("http://avatar.com/user.png");
+            origin.setGender(1);
+            origin.setPhone("13800138000");
+            origin.setEmail("test@example.com");
+            origin.setTags("tag1");
+            origin.setUserRole(1);
+            origin.setCreateTime(now);
+
+            User safe = userService.getSafetyUser(origin);
+
+            assertNotNull(safe);
+            assertEquals(1L, safe.getId());
+            assertEquals("测试用户", safe.getUserName());
+            assertEquals("testaccount", safe.getUserAccount());
+            assertNull(safe.getUserPassword());
+            assertEquals("http://avatar.com/user.png", safe.getUserUrl());
+            assertEquals(1, safe.getGender());
+            assertEquals("13800138000", safe.getPhone());
+            assertEquals("test@example.com", safe.getEmail());
+            assertEquals("tag1", safe.getTags());
+            assertEquals(1, safe.getUserRole());
+            assertEquals(now, safe.getCreateTime());
+        }
     }
 }

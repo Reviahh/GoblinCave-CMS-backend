@@ -579,6 +579,274 @@ class TeamServiceImplTest {
         assertEquals(1, result.size());
     }
 
+    // ==================== createTeam边界测试 ====================
+
+    @Test
+    void testCreateTeam_InsertFailed() {
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        when(competitionMapper.selectById(100L)).thenReturn(competition);
+        when(teamMapper.insert(any(Team.class))).thenReturn(0);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> teamService.createTeam(createRequest, request));
+        assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+    }
+
+    @Test
+    void testCreateTeam_WithDescription() {
+        createRequest.setDescription("详细描述");
+        
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        when(competitionMapper.selectById(100L)).thenReturn(competition);
+        when(teamMapper.insert(any(Team.class))).thenAnswer(invocation -> {
+            Team t = invocation.getArgument(0);
+            t.setId(1L);
+            return 1;
+        });
+        when(teamMemberMapper.insert(any(TeamMember.class))).thenReturn(1);
+
+        Long teamId = teamService.createTeam(createRequest, request);
+
+        assertNotNull(teamId);
+        assertEquals(1L, teamId);
+    }
+
+    @Test
+    void testCreateTeam_NullName() {
+        createRequest.setName(null);
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        when(competitionMapper.selectById(100L)).thenReturn(competition);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> teamService.createTeam(createRequest, request));
+        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+    }
+
+    // ==================== joinTeam边界测试 ====================
+
+    @Test
+    void testJoinTeam_NotLogin() {
+        when(userService.getLoginUser(request)).thenThrow(new BusinessException(ErrorCode.NOT_LOGIN));
+
+        assertThrows(BusinessException.class, () -> teamService.joinTeam(1L, request));
+    }
+
+    @Test
+    void testJoinTeam_NullExpireTime() {
+        team.setExpireTime(null);
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        doReturn(team).when(teamService).getById(1L);
+        when(teamMemberService.count(any(QueryWrapper.class))).thenReturn(0L).thenReturn(2L);
+        when(teamMemberService.save(any(TeamMember.class))).thenReturn(true);
+
+        boolean result = teamService.joinTeam(1L, request);
+
+        assertTrue(result);
+    }
+
+    // ==================== quitTeam边界测试 ====================
+
+    @Test
+    void testQuitTeam_NotLogin() {
+        when(userService.getLoginUser(request)).thenThrow(new BusinessException(ErrorCode.NOT_LOGIN));
+
+        assertThrows(BusinessException.class, () -> teamService.quitTeam(1L, request));
+    }
+
+    @Test
+    void testQuitTeam_RemoveFailed() {
+        TeamMember member = new TeamMember();
+        member.setId(10L);
+        member.setUserId(1L);
+        member.setTeamId(1L);
+        member.setRole(0);
+
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        when(teamMemberService.getOne(any(QueryWrapper.class))).thenReturn(member);
+        when(teamMemberService.removeById(10L)).thenReturn(false);
+
+        boolean result = teamService.quitTeam(1L, request);
+
+        assertFalse(result);
+    }
+
+    // ==================== deleteTeam边界测试 ====================
+
+    @Test
+    void testDeleteTeam_NotLogin() {
+        when(userService.getLoginUser(request)).thenThrow(new BusinessException(ErrorCode.NOT_LOGIN));
+
+        assertThrows(BusinessException.class, () -> teamService.deleteTeam(1L, request));
+    }
+
+    @Test
+    void testDeleteTeam_RemoveFailed() {
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        doReturn(team).when(teamService).getById(1L);
+        when(teamMemberMapper.delete(any(QueryWrapper.class))).thenReturn(2);
+        doReturn(false).when(teamService).removeById(1L);
+
+        boolean result = teamService.deleteTeam(1L, request);
+
+        assertFalse(result);
+    }
+
+    // ==================== updateTeam边界测试 ====================
+
+    @Test
+    void testUpdateTeam_NotLogin() {
+        when(userService.getLoginUser(request)).thenThrow(new BusinessException(ErrorCode.NOT_LOGIN));
+
+        TeamUpdateRequest updateRequest = new TeamUpdateRequest();
+        updateRequest.setId(1L);
+
+        assertThrows(BusinessException.class, () -> teamService.updateTeam(updateRequest, request));
+    }
+
+    @Test
+    void testUpdateTeam_NullId() {
+        TeamUpdateRequest updateRequest = new TeamUpdateRequest();
+        updateRequest.setId(null);
+
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        doReturn(null).when(teamService).getById(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> teamService.updateTeam(updateRequest, request));
+        assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+    }
+
+    @Test
+    void testUpdateTeam_Success_AsAdmin() {
+        TeamUpdateRequest updateRequest = new TeamUpdateRequest();
+        updateRequest.setId(1L);
+        updateRequest.setName("管理员更新的名称");
+
+        User admin = new User();
+        admin.setId(2L);
+        when(userService.getLoginUser(request)).thenReturn(admin);
+        doReturn(team).when(teamService).getById(1L);
+        when(userService.isAdmin(request)).thenReturn(true);
+        when(teamMapper.updateById(any(Team.class))).thenReturn(1);
+
+        boolean result = teamService.updateTeam(updateRequest, request);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void testUpdateTeam_Failed() {
+        TeamUpdateRequest updateRequest = new TeamUpdateRequest();
+        updateRequest.setId(1L);
+        updateRequest.setName("更新后的队伍名");
+
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        doReturn(team).when(teamService).getById(1L);
+        when(teamMapper.updateById(any(Team.class))).thenReturn(0);
+
+        boolean result = teamService.updateTeam(updateRequest, request);
+
+        assertFalse(result);
+    }
+
+    // ==================== listMyTeams边界测试 ====================
+
+    @Test
+    void testListMyTeams_NotLogin() {
+        when(userService.getLoginUser(request)).thenThrow(new BusinessException(ErrorCode.NOT_LOGIN));
+
+        assertThrows(BusinessException.class, () -> teamService.listMyTeams(request));
+    }
+
+    @Test
+    void testListMyTeams_EmptyJoinedTeams() {
+        when(userService.getLoginUser(request)).thenReturn(loginUser);
+        doReturn(new ArrayList<>()).when(teamService).list(any(QueryWrapper.class));
+        when(teamMemberMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+
+        List<Map<String, Object>> result = teamService.listMyTeams(request);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ==================== listTeams边界测试 ====================
+
+    @Test
+    void testListTeams_WithMultipleTeams() {
+        Team team2 = new Team();
+        team2.setId(2L);
+        team2.setName("第二个队伍");
+        team2.setCompetitionId(100L);
+        team2.setUserId(2L);
+        team2.setMaxNum(5);
+        team2.setCurrentNum(3);
+
+        List<Team> teams = Arrays.asList(team, team2);
+
+        doReturn(teams).when(teamService).list(any(QueryWrapper.class));
+        when(teamMemberService.list(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+
+        List<Map<String, Object>> result = teamService.listTeams(100L);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+    }
+
+    // ==================== 实体测试 ====================
+
+    @Test
+    void testTeam_AllFields() {
+        Team t = new Team();
+        Date now = new Date();
+
+        t.setId(1L);
+        t.setCompetitionId(100L);
+        t.setName("测试队伍");
+        t.setDescription("队伍描述");
+        t.setUserId(10L);
+        t.setMaxNum(5);
+        t.setCurrentNum(3);
+        t.setExpireTime(now);
+        t.setCreateTime(now);
+        t.setUpdateTime(now);
+        t.setIsDelete(0);
+
+        assertEquals(1L, t.getId());
+        assertEquals(100L, t.getCompetitionId());
+        assertEquals("测试队伍", t.getName());
+        assertEquals("队伍描述", t.getDescription());
+        assertEquals(10L, t.getUserId());
+        assertEquals(5, t.getMaxNum());
+        assertEquals(3, t.getCurrentNum());
+        assertEquals(now, t.getExpireTime());
+        assertEquals(now, t.getCreateTime());
+        assertEquals(now, t.getUpdateTime());
+        assertEquals(0, t.getIsDelete());
+    }
+
+    @Test
+    void testTeamMember_AllFields() {
+        TeamMember m = new TeamMember();
+        Date now = new Date();
+
+        m.setId(1L);
+        m.setTeamId(10L);
+        m.setUserId(20L);
+        m.setRole(1);
+        m.setCreateTime(now);
+        m.setUpdateTime(now);
+        m.setIsDelete(0);
+
+        assertEquals(1L, m.getId());
+        assertEquals(10L, m.getTeamId());
+        assertEquals(20L, m.getUserId());
+        assertEquals(1, m.getRole());
+        assertEquals(now, m.getCreateTime());
+        assertEquals(now, m.getUpdateTime());
+        assertEquals(0, m.getIsDelete());
+    }
+
     // ==================== 辅助方法 ====================
 
     private TeamMember createTeamMember(Long id, Long teamId, Long userId, Integer role) {

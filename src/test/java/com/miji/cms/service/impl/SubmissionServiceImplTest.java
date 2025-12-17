@@ -27,6 +27,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -295,10 +296,269 @@ class SubmissionServiceImplTest {
         assertEquals(ErrorCode.NO_AUTH.getCode(), exception.getCode());
     }
 
+    @Test
+    void testSubmitWork_EmptyFile() {
+        MockMultipartFile emptyFile = new MockMultipartFile("file", "test.zip", "application/zip", new byte[0]);
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> submissionService.submitWork(submitRequest, emptyFile, httpRequest));
+        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+    }
+
+    @Test
+    void testSubmitWork_NullRegistrationId() {
+        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip", "test content".getBytes());
+        SubmissionSubmitRequest invalidRequest = new SubmissionSubmitRequest();
+        invalidRequest.setRegistrationId(null);
+        
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> submissionService.submitWork(invalidRequest, file, httpRequest));
+        assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+    }
+
+    @Test
+    void testSubmitWork_Success_NewSubmission() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "work.zip", "application/zip", "test content".getBytes());
+
+        when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(loginUser);
+        when(competitionRegistrationMapper.selectById(10L)).thenReturn(registration);
+        // lambdaQuery().one() 内部调用的是 baseMapper.selectOne，这里直接mock
+        when(submissionMapper.selectOne(any())).thenReturn(null);
+        when(submissionMapper.insert(any(Submission.class))).thenAnswer(invocation -> {
+            Submission s = invocation.getArgument(0);
+            s.setId(1L);
+            return 1;
+        });
+
+        Long submissionId = submissionService.submitWork(submitRequest, file, httpRequest);
+
+        assertNotNull(submissionId);
+        assertEquals(1L, submissionId);
+        verify(submissionMapper, times(1)).insert(any(Submission.class));
+        verify(submissionMapper, never()).updateById(any(Submission.class));
+    }
+
+    @Test
+    void testSubmitWork_Success_UpdateExisting() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "work.zip", "application/zip", "test content".getBytes());
+
+        when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(loginUser);
+        when(competitionRegistrationMapper.selectById(10L)).thenReturn(registration);
+
+        Submission old = new Submission();
+        old.setId(5L);
+        old.setCompetitionId(100L);
+        old.setRegistrationId(10L);
+        old.setUserId(1L);
+        old.setTeamId(null);
+        old.setIsDelete(0);
+        old.setCreateTime(new Date(0));
+
+        when(submissionMapper.selectOne(any())).thenReturn(old);
+        when(submissionMapper.updateById(any(Submission.class))).thenReturn(1);
+
+        Long submissionId = submissionService.submitWork(submitRequest, file, httpRequest);
+
+        assertNotNull(submissionId);
+        assertEquals(5L, submissionId);
+        verify(submissionMapper, times(1)).updateById(any(Submission.class));
+        verify(submissionMapper, never()).insert(any(Submission.class));
+    }
+
+    @Test
+    void testSubmitWork_FileTransferIOException() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("work.zip");
+        when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(loginUser);
+        when(competitionRegistrationMapper.selectById(10L)).thenReturn(registration);
+        doThrow(new IOException("模拟IO异常")).when(file).transferTo(any(java.io.File.class));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> submissionService.submitWork(submitRequest, file, httpRequest));
+        assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+    }
+
+    // ==================== listSubmissions边界测试 ====================
+    @Nested
+    @DisplayName("listSubmissions边界测试")
+    class ListSubmissionsEdgeCaseTests {
+
+        @Test
+        @DisplayName("管理员查询所有提交")
+        void testListSubmissions_AdminViewAll() {
+            User adminUser = new User();
+            adminUser.setId(1L);
+            adminUser.setUserRole(1);
+
+            MockHttpSession adminSession = new MockHttpSession();
+            adminSession.setAttribute("userLoginState", adminUser);
+            httpRequest.setSession(adminSession);
+
+            SubmissionQueryRequest queryRequest = new SubmissionQueryRequest();
+            List<Submission> submissionList = Arrays.asList(submission);
+            doReturn(submissionList).when(submissionService).list(any());
+
+            List<Submission> result = submissionService.listSubmissions(queryRequest, httpRequest);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+        }
+
+        @Test
+        @DisplayName("普通用户只能查看自己的提交")
+        void testListSubmissions_NormalUserViewOwn() {
+            SubmissionQueryRequest queryRequest = new SubmissionQueryRequest();
+            List<Submission> submissionList = Arrays.asList(submission);
+            doReturn(submissionList).when(submissionService).list(any());
+
+            List<Submission> result = submissionService.listSubmissions(queryRequest, httpRequest);
+
+            assertNotNull(result);
+        }
+
+        @Test
+        @DisplayName("按竞赛ID筛选提交")
+        void testListSubmissions_FilterByCompetitionId() {
+            SubmissionQueryRequest queryRequest = new SubmissionQueryRequest();
+            queryRequest.setCompetitionId(100L);
+            List<Submission> submissionList = Arrays.asList(submission);
+            doReturn(submissionList).when(submissionService).list(any());
+
+            List<Submission> result = submissionService.listSubmissions(queryRequest, httpRequest);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+        }
+    }
+
+    // ==================== scoreSubmission边界测试 ====================
+    @Nested
+    @DisplayName("scoreSubmission边界测试")
+    class ScoreSubmissionEdgeCaseTests {
+
+        @Test
+        @DisplayName("评分提交已删除失败")
+        void testScoreSubmission_SubmissionDeleted() {
+            submission.setIsDelete(1);
+            doReturn(submission).when(submissionService).getById(1L);
+            
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> submissionService.scoreSubmission(1L, 85, httpRequest));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("竞赛不存在评分失败")
+        void testScoreSubmission_CompetitionNotFound() {
+            doReturn(submission).when(submissionService).getById(1L);
+            when(competitionService.getById(100L)).thenReturn(null);
+            
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> submissionService.scoreSubmission(1L, 85, httpRequest));
+            assertEquals(ErrorCode.NO_AUTH.getCode(), exception.getCode());
+        }
+    }
+
+    // ==================== getScoreDetail边界测试 ====================
+    @Nested
+    @DisplayName("getScoreDetail边界测试")
+    class GetScoreDetailEdgeCaseTests {
+
+        @Test
+        @DisplayName("获取团队提交的评分详情")
+        void testGetScoreDetail_WithTeam() {
+            submission.setScore(85);
+            submission.setTeamId(10L);
+            doReturn(submission).when(submissionService).getById(1L);
+            
+            User user = new User();
+            user.setId(1L);
+            user.setUserName("测试用户");
+            when(userService.getById(1L)).thenReturn(user);
+            when(teamService.getById(10L)).thenReturn(testTeam);
+            
+            SubmissionRankVO result = submissionService.getScoreDetail(1L);
+            
+            assertNotNull(result);
+            assertEquals("测试用户", result.getSubmitUserName());
+            assertEquals("测试团队", result.getTeamName());
+        }
+
+        @Test
+        @DisplayName("用户不存在时仍返回结果")
+        void testGetScoreDetail_UserNotFound() {
+            submission.setScore(85);
+            doReturn(submission).when(submissionService).getById(1L);
+            when(userService.getById(1L)).thenReturn(null);
+            
+            SubmissionRankVO result = submissionService.getScoreDetail(1L);
+            
+            assertNotNull(result);
+            assertNull(result.getSubmitUserName());
+        }
+
+        @Test
+        @DisplayName("团队不存在时仍返回结果")
+        void testGetScoreDetail_TeamNotFound() {
+            submission.setScore(85);
+            submission.setTeamId(999L);
+            doReturn(submission).when(submissionService).getById(1L);
+            
+            User user = new User();
+            user.setId(1L);
+            user.setUserName("测试用户");
+            when(userService.getById(1L)).thenReturn(user);
+            when(teamService.getById(999L)).thenReturn(null);
+            
+            SubmissionRankVO result = submissionService.getScoreDetail(1L);
+            
+            assertNotNull(result);
+            assertNull(result.getTeamName());
+        }
+    }
+
     // ==================== 获取竞赛排名测试 (重点) ====================
     @Nested
     @DisplayName("获取竞赛排名测试 - getCompetitionRank")
     class GetCompetitionRankTests {
+
+        @Test
+        @DisplayName("使用真实查询逻辑获取竞赛排名")
+        void testGetCompetitionRank_RealImplementation() {
+            Submission s1 = new Submission();
+            s1.setId(1L);
+            s1.setCompetitionId(1L);
+            s1.setScore(90);
+            s1.setUserId(1L);
+
+            Submission s2 = new Submission();
+            s2.setId(2L);
+            s2.setCompetitionId(1L);
+            s2.setScore(95);
+            s2.setUserId(2L);
+
+            // 按分数降序返回，模拟数据库排序后的结果
+            List<Submission> dbList = Arrays.asList(s2, s1);
+            when(submissionMapper.selectList(any())).thenReturn(dbList);
+
+            User user1 = new User();
+            user1.setId(1L);
+            user1.setUserName("用户1");
+            User user2 = new User();
+            user2.setId(2L);
+            user2.setUserName("用户2");
+            when(userService.getById(1L)).thenReturn(user1);
+            when(userService.getById(2L)).thenReturn(user2);
+
+            List<SubmissionRankVO> result = submissionService.getCompetitionRank(1L);
+
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            assertEquals(95, result.get(0).getScore());
+            assertEquals("用户2", result.get(0).getSubmitUserName());
+            assertEquals(90, result.get(1).getScore());
+            assertEquals("用户1", result.get(1).getSubmitUserName());
+        }
 
         @Test
         @DisplayName("成功获取竞赛排名 - 按分数降序排列")
