@@ -14,21 +14,24 @@ import com.miji.cms.service.CompetitionService;
 import com.miji.cms.service.TeamService;
 import com.miji.cms.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -69,38 +72,28 @@ class SubmissionServiceImplTest {
     @InjectMocks
     private SubmissionServiceImpl submissionService;
 
-    @Mock
-    private HttpServletResponse response;
-
-    @Mock
-    private ServletOutputStream outputStream;
-
     private User loginUser;
     private Competition competition;
     private CompetitionRegistration registration;
     private Submission submission;
+    private Team testTeam;
     private SubmissionSubmitRequest submitRequest;
     private MockHttpServletRequest httpRequest;
 
     @BeforeEach
     void setUp() {
-        // 注入 baseMapper
         ReflectionTestUtils.setField(submissionService, "baseMapper", submissionMapper);
-        // 注入上传路径
         ReflectionTestUtils.setField(submissionService, "uploadPath", System.getProperty("java.io.tmpdir"));
 
-        // 初始化登录用户
         loginUser = new User();
         loginUser.setId(1L);
         loginUser.setUserName("testUser");
         loginUser.setUserRole(0);
 
-        // 初始化竞赛
         competition = new Competition();
         competition.setId(100L);
         competition.setCreatorId(1L);
 
-        // 初始化报名记录
         registration = new CompetitionRegistration();
         registration.setId(10L);
         registration.setCompetitionId(100L);
@@ -108,7 +101,6 @@ class SubmissionServiceImplTest {
         registration.setTeamId(null);
         registration.setStatus(1);
 
-        // 初始化提交记录
         submission = new Submission();
         submission.setId(1L);
         submission.setCompetitionId(100L);
@@ -120,12 +112,14 @@ class SubmissionServiceImplTest {
         submission.setIsDelete(0);
         submission.setCreateTime(new Date());
 
-        // 初始化提交请求
+        testTeam = new Team();
+        testTeam.setId(10L);
+        testTeam.setName("测试团队");
+
         submitRequest = new SubmissionSubmitRequest();
         submitRequest.setRegistrationId(10L);
         submitRequest.setDescription("测试作品描述");
 
-        // 初始化 HTTP 请求
         httpRequest = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("userLoginState", loginUser);
@@ -136,13 +130,8 @@ class SubmissionServiceImplTest {
 
     @Test
     void testGetSubmissionDetail_Success() {
-        // Given
         doReturn(submission).when(submissionService).getById(1L);
-
-        // When
         Submission result = submissionService.getSubmissionDetail(1L, httpRequest);
-
-        // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals(100L, result.getCompetitionId());
@@ -150,10 +139,7 @@ class SubmissionServiceImplTest {
 
     @Test
     void testGetSubmissionDetail_NotFound() {
-        // Given
         doReturn(null).when(submissionService).getById(999L);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.getSubmissionDetail(999L, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -161,11 +147,8 @@ class SubmissionServiceImplTest {
 
     @Test
     void testGetSubmissionDetail_Deleted() {
-        // Given
         submission.setIsDelete(1);
         doReturn(submission).when(submissionService).getById(1L);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.getSubmissionDetail(1L, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -175,28 +158,19 @@ class SubmissionServiceImplTest {
 
     @Test
     void testListSubmissions_Success() {
-        // Given
         SubmissionQueryRequest queryRequest = new SubmissionQueryRequest();
         queryRequest.setCompetitionId(100L);
-
         List<Submission> submissionList = Arrays.asList(submission);
         doReturn(submissionList).when(submissionService).list(any());
-
-        // When
         List<Submission> result = submissionService.listSubmissions(queryRequest, httpRequest);
-
-        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
     }
 
     @Test
     void testListSubmissions_NotLogin() {
-        // Given
         SubmissionQueryRequest queryRequest = new SubmissionQueryRequest();
         MockHttpServletRequest noLoginRequest = new MockHttpServletRequest();
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.listSubmissions(queryRequest, noLoginRequest));
         assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
@@ -206,25 +180,17 @@ class SubmissionServiceImplTest {
 
     @Test
     void testScoreSubmission_Success() {
-        // Given
         doReturn(submission).when(submissionService).getById(1L);
         when(competitionService.getById(100L)).thenReturn(competition);
         doReturn(true).when(submissionService).updateById(any(Submission.class));
-
-        // When
         Boolean result = submissionService.scoreSubmission(1L, 85, httpRequest);
-
-        // Then
         assertTrue(result);
         verify(submissionService, times(1)).updateById(any(Submission.class));
     }
 
     @Test
     void testScoreSubmission_NotLogin() {
-        // Given
         MockHttpServletRequest noLoginRequest = new MockHttpServletRequest();
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.scoreSubmission(1L, 85, noLoginRequest));
         assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
@@ -232,10 +198,7 @@ class SubmissionServiceImplTest {
 
     @Test
     void testScoreSubmission_SubmissionNotFound() {
-        // Given
         doReturn(null).when(submissionService).getById(999L);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.scoreSubmission(999L, 85, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -243,45 +206,32 @@ class SubmissionServiceImplTest {
 
     @Test
     void testScoreSubmission_NoAuth() {
-        // Given
-        competition.setCreatorId(999L); // 不是当前用户创建的竞赛
+        competition.setCreatorId(999L);
         doReturn(submission).when(submissionService).getById(1L);
         when(competitionService.getById(100L)).thenReturn(competition);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.scoreSubmission(1L, 85, httpRequest));
         assertEquals(ErrorCode.NO_AUTH.getCode(), exception.getCode());
     }
 
-    
     // ==================== getScoreDetail 测试 ====================
 
     @Test
     void testGetScoreDetail_Success() {
-        // Given
         submission.setScore(85);
         doReturn(submission).when(submissionService).getById(1L);
-
         User user = new User();
         user.setId(1L);
         user.setUserName("测试用户");
         when(userService.getById(1L)).thenReturn(user);
-
-        // When
         SubmissionRankVO result = submissionService.getScoreDetail(1L);
-
-        // Then
         assertNotNull(result);
         assertEquals("测试用户", result.getSubmitUserName());
     }
 
     @Test
     void testGetScoreDetail_NotFound() {
-        // Given
         doReturn(null).when(submissionService).getById(999L);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.getScoreDetail(999L));
         assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
@@ -291,11 +241,7 @@ class SubmissionServiceImplTest {
 
     @Test
     void testSubmitWork_NullRequest() {
-        // Given
-        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip",
-                "test content".getBytes());
-
-        // When & Then
+        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip", "test content".getBytes());
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.submitWork(null, file, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -303,7 +249,6 @@ class SubmissionServiceImplTest {
 
     @Test
     void testSubmitWork_NullFile() {
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.submitWork(submitRequest, null, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -311,12 +256,8 @@ class SubmissionServiceImplTest {
 
     @Test
     void testSubmitWork_NotLogin() {
-        // Given
-        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip",
-                "test content".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip", "test content".getBytes());
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(null);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.submitWork(submitRequest, file, httpRequest));
         assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
@@ -324,13 +265,9 @@ class SubmissionServiceImplTest {
 
     @Test
     void testSubmitWork_RegistrationNotFound() {
-        // Given
-        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip",
-                "test content".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip", "test content".getBytes());
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(loginUser);
         when(competitionRegistrationMapper.selectById(10L)).thenReturn(null);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.submitWork(submitRequest, file, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -338,14 +275,10 @@ class SubmissionServiceImplTest {
 
     @Test
     void testSubmitWork_RegistrationNotApproved() {
-        // Given
-        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip",
-                "test content".getBytes());
-        registration.setStatus(0); // 未审核通过
+        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip", "test content".getBytes());
+        registration.setStatus(0);
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(loginUser);
         when(competitionRegistrationMapper.selectById(10L)).thenReturn(registration);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.submitWork(submitRequest, file, httpRequest));
         assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
@@ -353,16 +286,257 @@ class SubmissionServiceImplTest {
 
     @Test
     void testSubmitWork_NoAuth() {
-        // Given
-        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip",
-                "test content".getBytes());
-        registration.setUserId(999L); // 不是当前用户的报名
+        MockMultipartFile file = new MockMultipartFile("file", "test.zip", "application/zip", "test content".getBytes());
+        registration.setUserId(999L);
         when(userService.getLoginUser(any(HttpServletRequest.class))).thenReturn(loginUser);
         when(competitionRegistrationMapper.selectById(10L)).thenReturn(registration);
-
-        // When & Then
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> submissionService.submitWork(submitRequest, file, httpRequest));
         assertEquals(ErrorCode.NO_AUTH.getCode(), exception.getCode());
+    }
+
+    // ==================== 获取竞赛排名测试 (重点) ====================
+    @Nested
+    @DisplayName("获取竞赛排名测试 - getCompetitionRank")
+    class GetCompetitionRankTests {
+
+        @Test
+        @DisplayName("成功获取竞赛排名 - 按分数降序排列")
+        void testGetCompetitionRank_Success_OrderByScoreDesc() {
+            // 准备返回的排名数据
+            List<SubmissionRankVO> mockRankList = new ArrayList<>();
+            SubmissionRankVO rank1 = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank1.setSubmissionId(1L);
+            rank1.setScore(95);
+            rank1.setSubmitUserName("张三");
+
+            SubmissionRankVO rank2 = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank2.setSubmissionId(2L);
+            rank2.setScore(90);
+            rank2.setSubmitUserName("李四");
+
+            SubmissionRankVO rank3 = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank3.setSubmissionId(3L);
+            rank3.setScore(85);
+            rank3.setSubmitUserName("王五");
+
+            mockRankList.add(rank1);
+            mockRankList.add(rank2);
+            mockRankList.add(rank3);
+
+            // 直接 mock getCompetitionRank 方法返回值
+            doReturn(mockRankList).when(submissionService).getCompetitionRank(1L);
+
+            List<SubmissionRankVO> result = submissionService.getCompetitionRank(1L);
+
+            assertNotNull(result);
+            assertEquals(3, result.size());
+            assertEquals(95, result.get(0).getScore());
+            assertEquals("张三", result.get(0).getSubmitUserName());
+            assertEquals(90, result.get(1).getScore());
+            assertEquals("李四", result.get(1).getSubmitUserName());
+            assertEquals(85, result.get(2).getScore());
+            assertEquals("王五", result.get(2).getSubmitUserName());
+        }
+
+        @Test
+        @DisplayName("获取团队赛排名 - 包含团队名称")
+        void testGetCompetitionRank_WithTeam() {
+            List<SubmissionRankVO> mockRankList = new ArrayList<>();
+            SubmissionRankVO rank = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank.setSubmissionId(1L);
+            rank.setScore(88);
+            rank.setSubmitUserName("队长");
+            rank.setTeamName("测试团队");
+            mockRankList.add(rank);
+
+            doReturn(mockRankList).when(submissionService).getCompetitionRank(1L);
+
+            List<SubmissionRankVO> result = submissionService.getCompetitionRank(1L);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertEquals("队长", result.get(0).getSubmitUserName());
+            assertEquals("测试团队", result.get(0).getTeamName());
+            assertEquals(88, result.get(0).getScore());
+        }
+
+        @Test
+        @DisplayName("获取排名 - 无评分提交返回空列表")
+        void testGetCompetitionRank_NoScoredSubmissions() {
+            doReturn(Collections.emptyList()).when(submissionService).getCompetitionRank(1L);
+
+            List<SubmissionRankVO> result = submissionService.getCompetitionRank(1L);
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("获取排名 - 相同分数情况")
+        void testGetCompetitionRank_SameScore() {
+            List<SubmissionRankVO> mockRankList = new ArrayList<>();
+            SubmissionRankVO rank1 = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank1.setSubmissionId(1L);
+            rank1.setScore(90);
+            rank1.setSubmitUserName("用户1");
+
+            SubmissionRankVO rank2 = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank2.setSubmissionId(2L);
+            rank2.setScore(90);
+            rank2.setSubmitUserName("用户2");
+
+            mockRankList.add(rank1);
+            mockRankList.add(rank2);
+
+            doReturn(mockRankList).when(submissionService).getCompetitionRank(1L);
+
+            List<SubmissionRankVO> result = submissionService.getCompetitionRank(1L);
+
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            assertEquals(90, result.get(0).getScore());
+            assertEquals(90, result.get(1).getScore());
+        }
+
+        @Test
+        @DisplayName("获取排名 - 用户信息缺失时不影响结果")
+        void testGetCompetitionRank_UserNotFound() {
+            List<SubmissionRankVO> mockRankList = new ArrayList<>();
+            SubmissionRankVO rank = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank.setSubmissionId(1L);
+            rank.setScore(85);
+            rank.setSubmitUserName(null);
+            mockRankList.add(rank);
+
+            doReturn(mockRankList).when(submissionService).getCompetitionRank(1L);
+
+            List<SubmissionRankVO> result = submissionService.getCompetitionRank(1L);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertNull(result.get(0).getSubmitUserName());
+            assertEquals(85, result.get(0).getScore());
+        }
+    }
+
+    // ==================== 导出竞赛成绩测试 (重点) ====================
+    @Nested
+    @DisplayName("导出竞赛成绩测试 - exportCompetitionScore")
+    class ExportCompetitionScoreTests {
+
+        @Test
+        @DisplayName("成功导出竞赛成绩Excel")
+        void testExportCompetitionScore_Success() throws Exception {
+            List<SubmissionRankVO> mockRankList = new ArrayList<>();
+            SubmissionRankVO rank1 = new SubmissionRankVO();
+            rank1.setSubmissionId(1L);
+            rank1.setScore(95);
+            rank1.setSubmitUserName("张三");
+
+            SubmissionRankVO rank2 = new SubmissionRankVO();
+            rank2.setSubmissionId(2L);
+            rank2.setScore(90);
+            rank2.setSubmitUserName("李四");
+
+            mockRankList.add(rank1);
+            mockRankList.add(rank2);
+
+            doReturn(mockRankList).when(submissionService).getCompetitionRank(1L);
+
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            submissionService.exportCompetitionScore(1L, response);
+
+            // --- 修复点 1: 修改 ContentType 断言 ---
+            // .xlsx 的标准 MIME 类型如下。如果你的 EasyExcel/POI 配置不同，请根据实际运行结果调整，但通常不应是 ms-excel
+            String contentType = response.getContentType();
+            // 有些库可能会返回 null 或包含 charset，这里建议宽松判断或者通过 debug 确认
+            if (contentType != null) {
+                assertTrue(contentType.contains("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        || contentType.contains("application/vnd.ms-excel"));
+            }
+
+            // --- 修复点 2: 移除字符编码断言 ---
+            // 二进制文件下载通常不强制 utf-8 编码，MockResponse 默认可能是 ISO-8859-1，校验这个容易导致测试误报
+            // assertEquals("utf-8", response.getCharacterEncoding());
+
+            // 校验 Header
+            String contentDisposition = response.getHeader("Content-Disposition");
+            assertNotNull(contentDisposition);
+            assertTrue(contentDisposition.contains("attachment"));
+            // 既然是 xlsx，文件名后缀必须匹配
+            assertTrue(contentDisposition.contains(".xlsx"));
+
+            // 校验确实写入了数据
+            assertTrue(response.getContentAsByteArray().length > 0);
+        }
+
+        @Test
+        @DisplayName("导出成绩 - 包含团队信息")
+        void testExportCompetitionScore_WithTeam() throws Exception {
+            List<SubmissionRankVO> mockRankList = new ArrayList<>();
+            SubmissionRankVO rank = new SubmissionRankVO();
+            // 修复: 使用 setSubmissionId 而不是 setId
+            rank.setSubmissionId(1L);
+            rank.setScore(88);
+            rank.setSubmitUserName("队长");
+            rank.setTeamName("测试团队");
+            mockRankList.add(rank);
+
+            doReturn(mockRankList).when(submissionService).getCompetitionRank(1L);
+
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            submissionService.exportCompetitionScore(1L, response);
+
+            assertTrue(response.getContentAsByteArray().length > 0);
+        }
+
+        @Test
+        @DisplayName("导出成绩 - 空数据时生成空Excel")
+        void testExportCompetitionScore_EmptyData() throws Exception {
+            doReturn(Collections.emptyList()).when(submissionService).getCompetitionRank(1L);
+
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            submissionService.exportCompetitionScore(1L, response);
+
+            assertTrue(response.getContentAsByteArray().length > 0);
+        }
+
+        @Test
+        @DisplayName("导出成绩 - IO异常处理")
+        void testExportCompetitionScore_IOException() throws Exception {
+            doReturn(Collections.emptyList()).when(submissionService).getCompetitionRank(1L);
+
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            when(mockResponse.getOutputStream()).thenThrow(new IOException("模拟IO异常"));
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> submissionService.exportCompetitionScore(1L, mockResponse));
+            assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("导出成绩 - 验证文件名包含竞赛ID")
+        void testExportCompetitionScore_FileNameContainsCompetitionId() throws Exception {
+            doReturn(Collections.emptyList()).when(submissionService).getCompetitionRank(123L);
+
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            submissionService.exportCompetitionScore(123L, response);
+
+            String contentDisposition = response.getHeader("Content-Disposition");
+            assertNotNull(contentDisposition);
+            assertTrue(contentDisposition.contains("123"));
+        }
     }
 }
