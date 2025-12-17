@@ -618,5 +618,409 @@ class CompetitionServiceImplTest {
             assertNotNull(result);
             assertTrue(result.isEmpty());
         }
+
+        @Test
+        @DisplayName("用户有参加竞赛返回竞赛列表")
+        void testListMyCompetitions_WithCompetitions() {
+            CompetitionRegistration reg = new CompetitionRegistration();
+            reg.setId(1L);
+            reg.setCompetitionId(1L);
+            reg.setUserId(2L);
+            reg.setStatus(1);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            when(competitionRegistrationMapper.selectList(any(LambdaQueryWrapper.class)))
+                    .thenReturn(Arrays.asList(reg));
+            when(teamMemberMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+            doReturn(Arrays.asList(testCompetition)).when(competitionService).list(any(LambdaQueryWrapper.class));
+
+            List<Competition> result = competitionService.listMyCompetitions(httpRequest);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+        }
+    }
+
+    @Nested
+    @DisplayName("查询用户报名记录测试")
+    class GetRegistrationByUserAndCompetitionTests {
+
+        @Test
+        @DisplayName("成功查询用户报名记录")
+        void testGetRegistrationByUserAndCompetition_Success() {
+            CompetitionRegistration reg = new CompetitionRegistration();
+            reg.setId(1L);
+            reg.setCompetitionId(1L);
+            reg.setUserId(2L);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            doReturn(testCompetition).when(competitionService).getById(1L);
+            when(competitionRegistrationMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(reg);
+
+            CompetitionRegistration result = competitionService.getRegistrationByUserAndCompetition(1L, 2L, httpRequest);
+
+            assertNotNull(result);
+            assertEquals(1L, result.getCompetitionId());
+        }
+
+        @Test
+        @DisplayName("未登录用户查询报名记录失败")
+        void testGetRegistrationByUserAndCompetition_NotLogin() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(null);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.getRegistrationByUserAndCompetition(1L, 2L, httpRequest));
+            assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("竞赛不存在查询报名记录失败")
+        void testGetRegistrationByUserAndCompetition_CompetitionNotFound() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            doReturn(null).when(competitionService).getById(999L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.getRegistrationByUserAndCompetition(999L, 2L, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("竞赛已删除查询报名记录失败")
+        void testGetRegistrationByUserAndCompetition_CompetitionDeleted() {
+            Competition deletedCompetition = new Competition();
+            deletedCompetition.setId(1L);
+            deletedCompetition.setIsDelete(1);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            doReturn(deletedCompetition).when(competitionService).getById(1L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.getRegistrationByUserAndCompetition(1L, 2L, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("用户未报名返回null")
+        void testGetRegistrationByUserAndCompetition_NotRegistered() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            doReturn(testCompetition).when(competitionService).getById(1L);
+            when(competitionRegistrationMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+
+            CompetitionRegistration result = competitionService.getRegistrationByUserAndCompetition(1L, 2L, httpRequest);
+
+            assertNull(result);
+        }
+    }
+
+    @Nested
+    @DisplayName("个人赛报名测试")
+    class IndividualCompetitionRegisterTests {
+
+        @Test
+        @DisplayName("个人赛成功报名-自动创建队伍")
+        void testRegisterCompetition_IndividualSuccess() {
+            Competition individualCompetition = new Competition();
+            individualCompetition.setId(1L);
+            individualCompetition.setMaxMembers(1);
+            individualCompetition.setIsDelete(0);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            doReturn(individualCompetition).when(competitionService).getById(1L);
+            when(teamMapper.selectOne(any(QueryWrapper.class))).thenReturn(null);
+            when(teamMapper.insert(any(Team.class))).thenAnswer(invocation -> {
+                Team t = invocation.getArgument(0);
+                t.setId(100L);
+                return 1;
+            });
+            when(teamMemberMapper.insert(any(TeamMember.class))).thenReturn(1);
+            when(teamMapper.selectById(100L)).thenReturn(createTeam(100L, 2L));
+            when(competitionRegistrationMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(competitionRegistrationMapper.insert(any(CompetitionRegistration.class))).thenReturn(1);
+
+            CompetitionRegisterRequest request = new CompetitionRegisterRequest();
+            request.setCompetitionId(1L);
+
+            boolean result = competitionService.registerCompetition(request, httpRequest);
+
+            assertTrue(result);
+        }
+
+        @Test
+        @DisplayName("个人赛已有队伍直接报名")
+        void testRegisterCompetition_IndividualExistingTeam() {
+            Competition individualCompetition = new Competition();
+            individualCompetition.setId(1L);
+            individualCompetition.setMaxMembers(1);
+            individualCompetition.setIsDelete(0);
+
+            Team existingTeam = createTeam(50L, 2L);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(normalUser);
+            doReturn(individualCompetition).when(competitionService).getById(1L);
+            when(teamMapper.selectOne(any(QueryWrapper.class))).thenReturn(existingTeam);
+            when(teamMapper.selectById(50L)).thenReturn(existingTeam);
+            when(competitionRegistrationMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(competitionRegistrationMapper.insert(any(CompetitionRegistration.class))).thenReturn(1);
+
+            CompetitionRegisterRequest request = new CompetitionRegisterRequest();
+            request.setCompetitionId(1L);
+
+            boolean result = competitionService.registerCompetition(request, httpRequest);
+
+            assertTrue(result);
+        }
+    }
+
+    @Nested
+    @DisplayName("更新竞赛边界测试")
+    class UpdateCompetitionEdgeCaseTests {
+
+        @Test
+        @DisplayName("更新已删除的竞赛失败")
+        void testUpdateCompetition_DeletedCompetition() {
+            Competition deletedCompetition = new Competition();
+            deletedCompetition.setId(1L);
+            deletedCompetition.setIsDelete(1);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            doReturn(deletedCompetition).when(competitionService).getById(1L);
+
+            CompetitionUpdateRequest request = new CompetitionUpdateRequest();
+            request.setId(1L);
+            request.setName("更新后的名称");
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.updateCompetition(request, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("未登录用户更新竞赛失败")
+        void testUpdateCompetition_NotLogin() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(null);
+
+            CompetitionUpdateRequest request = new CompetitionUpdateRequest();
+            request.setId(1L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.updateCompetition(request, httpRequest));
+            assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("更新竞赛时间字段成功")
+        void testUpdateCompetition_UpdateTimeFields() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            doReturn(testCompetition).when(competitionService).getById(1L);
+            doReturn(true).when(competitionService).updateById(any(Competition.class));
+
+            CompetitionUpdateRequest request = new CompetitionUpdateRequest();
+            request.setId(1L);
+            request.setStartTime(new Date());
+            request.setEndTime(new Date());
+
+            boolean result = competitionService.updateCompetition(request, httpRequest);
+
+            assertTrue(result);
+        }
+    }
+
+    @Nested
+    @DisplayName("删除竞赛边界测试")
+    class DeleteCompetitionEdgeCaseTests {
+
+        @Test
+        @DisplayName("删除已删除的竞赛失败")
+        void testDeleteCompetition_AlreadyDeleted() {
+            Competition deletedCompetition = new Competition();
+            deletedCompetition.setId(1L);
+            deletedCompetition.setIsDelete(1);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            doReturn(deletedCompetition).when(competitionService).getById(1L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.deleteCompetition(1L, httpRequest));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("未登录用户删除竞赛失败")
+        void testDeleteCompetition_NotLogin() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(null);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.deleteCompetition(1L, httpRequest));
+            assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("删除不存在的竞赛失败")
+        void testDeleteCompetition_NotFound() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            doReturn(null).when(competitionService).getById(999L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.deleteCompetition(999L, httpRequest));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("审核报名边界测试")
+    class ReviewRegistrationEdgeCaseTests {
+
+        @Test
+        @DisplayName("未登录用户审核报名失败")
+        void testReviewRegistration_NotLogin() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(null);
+
+            CompetitionReviewRequest request = new CompetitionReviewRequest();
+            request.setRegistrationId(1L);
+            request.setStatus(1);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.reviewRegistration(request, httpRequest));
+            assertEquals(ErrorCode.NOT_LOGIN.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("报名记录不存在审核失败")
+        void testReviewRegistration_RegistrationNotFound() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            when(competitionRegistrationMapper.selectById(999L)).thenReturn(null);
+
+            CompetitionReviewRequest request = new CompetitionReviewRequest();
+            request.setRegistrationId(999L);
+            request.setStatus(1);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.reviewRegistration(request, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("报名记录已删除审核失败")
+        void testReviewRegistration_RegistrationDeleted() {
+            CompetitionRegistration deletedReg = new CompetitionRegistration();
+            deletedReg.setId(1L);
+            deletedReg.setIsDelete(1);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            when(competitionRegistrationMapper.selectById(1L)).thenReturn(deletedReg);
+
+            CompetitionReviewRequest request = new CompetitionReviewRequest();
+            request.setRegistrationId(1L);
+            request.setStatus(1);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.reviewRegistration(request, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("竞赛不存在审核失败")
+        void testReviewRegistration_CompetitionNotFound() {
+            CompetitionRegistration registration = new CompetitionRegistration();
+            registration.setId(1L);
+            registration.setCompetitionId(999L);
+            registration.setStatus(0);
+            registration.setIsDelete(0);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            when(competitionRegistrationMapper.selectById(1L)).thenReturn(registration);
+            doReturn(null).when(competitionService).getById(999L);
+
+            CompetitionReviewRequest request = new CompetitionReviewRequest();
+            request.setRegistrationId(1L);
+            request.setStatus(1);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.reviewRegistration(request, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("拒绝报名成功")
+        void testReviewRegistration_Reject() {
+            CompetitionRegistration registration = new CompetitionRegistration();
+            registration.setId(1L);
+            registration.setCompetitionId(1L);
+            registration.setStatus(0);
+            registration.setIsDelete(0);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            when(competitionRegistrationMapper.selectById(1L)).thenReturn(registration);
+            doReturn(testCompetition).when(competitionService).getById(1L);
+            when(competitionRegistrationMapper.updateById(any(CompetitionRegistration.class))).thenReturn(1);
+
+            CompetitionReviewRequest request = new CompetitionReviewRequest();
+            request.setRegistrationId(1L);
+            request.setStatus(2);
+
+            boolean result = competitionService.reviewRegistration(request, httpRequest);
+
+            assertTrue(result);
+        }
+    }
+
+    @Nested
+    @DisplayName("查询报名列表边界测试")
+    class ListRegistrationsEdgeCaseTests {
+
+        @Test
+        @DisplayName("竞赛不存在查询报名列表失败")
+        void testListCompetitionRegistrations_CompetitionNotFound() {
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            doReturn(null).when(competitionService).getById(999L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.listCompetitionRegistrations(999L, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("竞赛已删除查询报名列表失败")
+        void testListCompetitionRegistrations_CompetitionDeleted() {
+            Competition deletedCompetition = new Competition();
+            deletedCompetition.setId(1L);
+            deletedCompetition.setIsDelete(1);
+
+            when(httpRequest.getSession()).thenReturn(session);
+            when(session.getAttribute(UserConstant.USER_LOGIN_STATE)).thenReturn(adminUser);
+            doReturn(deletedCompetition).when(competitionService).getById(1L);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> competitionService.listCompetitionRegistrations(1L, httpRequest));
+            assertEquals(ErrorCode.NULL_ERROR.getCode(), exception.getCode());
+        }
+    }
+
+    private Team createTeam(Long id, Long userId) {
+        Team team = new Team();
+        team.setId(id);
+        team.setUserId(userId);
+        team.setIsDelete(0);
+        return team;
     }
 }

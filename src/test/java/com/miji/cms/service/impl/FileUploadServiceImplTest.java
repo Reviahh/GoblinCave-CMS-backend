@@ -330,4 +330,370 @@ class FileUploadServiceImplTest {
             assertTrue(result.contains("/files/"));
         }
     }
+
+    @Nested
+    @DisplayName("更多视频格式测试")
+    class AdditionalVideoFormatTests {
+
+        @Test
+        @DisplayName("成功上传WMV视频")
+        void testUploadVideo_WMV_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_video.wmv");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadVideo(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".wmv"));
+        }
+
+        @Test
+        @DisplayName("成功上传FLV视频")
+        void testUploadVideo_FLV_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_video.flv");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadVideo(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".flv"));
+        }
+
+        @Test
+        @DisplayName("成功上传MKV视频")
+        void testUploadVideo_MKV_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_video.mkv");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadVideo(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".mkv"));
+        }
+    }
+
+    @Nested
+    @DisplayName("更多图片格式测试")
+    class AdditionalImageFormatTests {
+
+        @Test
+        @DisplayName("成功上传JPEG图片")
+        void testUploadImage_JPEG_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_image.jpeg");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadImage(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".jpeg"));
+        }
+
+        @Test
+        @DisplayName("成功上传GIF图片")
+        void testUploadImage_GIF_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_image.gif");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadImage(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".gif"));
+        }
+
+        @Test
+        @DisplayName("成功上传BMP图片")
+        void testUploadImage_BMP_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_image.bmp");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadImage(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".bmp"));
+        }
+
+        @Test
+        @DisplayName("成功上传WEBP图片")
+        void testUploadImage_WEBP_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_image.webp");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadImage(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".webp"));
+        }
+    }
+
+    @Nested
+    @DisplayName("更多文档格式测试")
+    class AdditionalDocumentFormatTests {
+
+        @Test
+        @DisplayName("成功上传DOC文档")
+        void testUploadFile_DOC_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.doc");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".doc"));
+        }
+
+        @Test
+        @DisplayName("成功上传XLS文档")
+        void testUploadFile_XLS_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.xls");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".xls"));
+        }
+
+        @Test
+        @DisplayName("成功上传XLSX文档")
+        void testUploadFile_XLSX_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.xlsx");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".xlsx"));
+        }
+
+        @Test
+        @DisplayName("成功上传PPT文档")
+        void testUploadFile_PPT_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.ppt");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".ppt"));
+        }
+
+        @Test
+        @DisplayName("成功上传PPTX文档")
+        void testUploadFile_PPTX_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.pptx");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".pptx"));
+        }
+
+        @Test
+        @DisplayName("成功上传TXT文档")
+        void testUploadFile_TXT_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.txt");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".txt"));
+        }
+
+        @Test
+        @DisplayName("成功上传RAR压缩包")
+        void testUploadFile_RAR_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_archive.rar");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".rar"));
+        }
+
+        @Test
+        @DisplayName("成功上传7Z压缩包")
+        void testUploadFile_7Z_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_archive.7z");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".7z"));
+        }
+
+        @Test
+        @DisplayName("成功上传TAR压缩包")
+        void testUploadFile_TAR_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_archive.tar");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".tar"));
+        }
+
+        @Test
+        @DisplayName("成功上传GZ压缩包")
+        void testUploadFile_GZ_Success() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_archive.gz");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".gz"));
+        }
+    }
+
+    @Nested
+    @DisplayName("文件扩展名边界测试")
+    class FileExtensionEdgeCaseTests {
+
+        @Test
+        @DisplayName("大写扩展名应该被正确处理")
+        void testUploadFile_UpperCaseExtension() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.PDF");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".PDF"));
+        }
+
+        @Test
+        @DisplayName("混合大小写扩展名应该被正确处理")
+        void testUploadFile_MixedCaseExtension() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test_document.PdF");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".PdF"));
+        }
+
+        @Test
+        @DisplayName("文件名只有扩展名")
+        void testUploadFile_OnlyExtension() {
+            when(mockFile.getOriginalFilename()).thenReturn(".pdf");
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadFile(mockFile));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("文件名包含多个点")
+        void testUploadFile_MultipleDotsInName() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test.document.final.pdf");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doNothing().when(mockFile).transferTo(any(File.class));
+
+            String result = fileUploadService.uploadFile(mockFile);
+
+            assertNotNull(result);
+            assertTrue(result.endsWith(".pdf"));
+        }
+
+        @Test
+        @DisplayName("视频上传空文件")
+        void testUploadVideo_EmptyFile() {
+            when(mockFile.getOriginalFilename()).thenReturn("test.mp4");
+            when(mockFile.isEmpty()).thenReturn(true);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadVideo(mockFile));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("图片上传空文件")
+        void testUploadImage_EmptyFile() {
+            when(mockFile.getOriginalFilename()).thenReturn("test.jpg");
+            when(mockFile.isEmpty()).thenReturn(true);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadImage(mockFile));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("图片上传空文件名")
+        void testUploadImage_EmptyFilename() {
+            when(mockFile.getOriginalFilename()).thenReturn("");
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadImage(mockFile));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+
+        @Test
+        @DisplayName("图片上传null文件名")
+        void testUploadImage_NullFilename() {
+            when(mockFile.getOriginalFilename()).thenReturn(null);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadImage(mockFile));
+            assertEquals(ErrorCode.PARAMS_ERROR.getCode(), exception.getCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("视频格式IO异常测试")
+    class VideoIOExceptionTests {
+
+        @Test
+        @DisplayName("视频传输IO异常")
+        void testUploadVideo_IOExceptionDuringTransfer() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test.mp4");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doThrow(new IOException("模拟IO异常")).when(mockFile).transferTo(any(File.class));
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadVideo(mockFile));
+            assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("图片格式IO异常测试")
+    class ImageIOExceptionTests {
+
+        @Test
+        @DisplayName("图片传输IO异常")
+        void testUploadImage_IOExceptionDuringTransfer() throws IOException {
+            when(mockFile.getOriginalFilename()).thenReturn("test.jpg");
+            when(mockFile.isEmpty()).thenReturn(false);
+            doThrow(new IOException("模拟IO异常")).when(mockFile).transferTo(any(File.class));
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> fileUploadService.uploadImage(mockFile));
+            assertEquals(ErrorCode.SYSTEM_ERROR.getCode(), exception.getCode());
+        }
+    }
 }
